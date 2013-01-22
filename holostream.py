@@ -11,12 +11,14 @@ from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigCanvas, \
     NavigationToolbar2WxAgg as NavigationToolbar
 from wx.lib.pubsub import Publisher
-import p2acnet
 import threading
 import numpy as np
 import matplotlib.pyplot as plt
-import time
 import random
+
+ID_CreatePerspective = wx.NewId()
+ID_CopyPerspective = wx.NewId()
+ID_FirstPerspective = ID_CreatePerspective+1000
 
 # PubSub message classification
 MSG_NOTIFY_ROOT = ('root',)
@@ -319,12 +321,43 @@ class StreamFrame(wx.Frame):
                           wx.aui.AuiPaneInfo().Caption('Controls').
                           Left().MinimizeButton(True))
         self._mgr.AddPane(mplpanel2, wx.aui.AuiPaneInfo().Caption('Plot Canvas').
-                           Center().MinimizeButton(True).MaximizeButton(True))
+                           Center().MaximizeButton(True).Movable())
+        # see if we can get center panels to be movable
         self._mgr.AddPane(mplpanel, wx.aui.AuiPaneInfo().Caption('AVG Plot').
                           Center().MaximizeButton(True))
         self._mgr.AddPane(loggerctrl, wx.aui.AuiPaneInfo().Caption('Notifications').
                           Bottom().MinimizeButton(True).MaximizeButton(True))
         self._mgr.Update()
+
+        # create menu
+        mb = wx.MenuBar()
+
+        file_menu = wx.Menu()
+        file_menu.Append(wx.ID_EXIT, "Exit")
+
+        self._perspectives_menu = wx.Menu()
+        self._perspectives_menu.Append(ID_CreatePerspective, "Create Perspective")
+        self._perspectives_menu.Append(ID_CopyPerspective, \
+                                           "Copy Perspective Data To Clipboard")
+        self._perspectives_menu.AppendSeparator()
+        self._perspectives_menu.Append(ID_FirstPerspective+0, "Default Startup")
+
+        mb.Append(file_menu, "File")
+        mb.Append(self._perspectives_menu, "Perspectives")
+
+        self.SetMenuBar(mb)
+
+        # Event Bindings
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+        self.Bind(wx.EVT_MENU, self.OnExit, id=wx.ID_EXIT)
+
+    def OnExit(self, event):
+        self.Close()
+
+    def OnClose(self, event):
+        self._mgr.UnInit()
+        del self._mgr
+        self.Destroy()
 
 class StreamApp(wx.App):
     def OnInit(self):
