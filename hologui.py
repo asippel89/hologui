@@ -191,7 +191,8 @@ class ControlPanel(wx.Panel):
         def innerrun():
             query = p2acnet.P2ACNET(Channel_list, Start_time, End_time, \
                                         verbose=Verbose, \
-                                        print_method=self.printLogger)
+                                        print_method=self.printLogger\
+                                        )
             info_dict = query.get_group_info()
             wx.PostEvent(self, ResultEvent(['mpl_canvas_info_dict', info_dict]))
             data = query.get_group_data()
@@ -229,13 +230,22 @@ class MPLPanel(wx.Panel):
 
         # Setup the canvas
         self.dpi = 100
-        self.fig = Figure(dpi=self.dpi)
+        self.fig = Figure((4.0, 5.0), dpi=self.dpi)
         self.ax = None
         self.canvas = FigCanvas(self, -1, self.fig)
         self.ax_dict = None
 
         # Setup the toolbar
         self.toolbar = NavigationToolbar(self.canvas)
+        self.toolbar.AddSeparator()
+        self.statusctrl = wx.TextCtrl(self.toolbar, style=wx.TE_READONLY, \
+                                          size=wx.Size(300,25))
+        self.toolbar.AddControl(self.statusctrl)
+
+        # Bind mouse events to mplcanvas
+        # Note that event is a MplEvent
+        self.canvas.mpl_connect('motion_notify_event', self.UpdateStatusBar)
+        self.canvas.Bind(wx.EVT_ENTER_WINDOW, self.ChangeCursor)
 
         # Do the layout
         panelvbox = wx.BoxSizer(wx.VERTICAL)
@@ -247,6 +257,20 @@ class MPLPanel(wx.Panel):
 
         # Observer of Notify events
         Publisher.subscribe(self.OnPlotUpdate, MSG_NOTIFY_ROOT)
+
+    def UpdateStatusBar(self, event):
+        """Function to update statusbar with mouse position"""
+        if event.inaxes:
+            x, y = event.xdata, event.ydata
+            xformat = dt.datetime.strftime(mdates.num2date(x), '%d-%b-%Y-%H:%M')
+            if np.log10(y) < -5:
+                yformat = "%e" % y
+            else:
+                yformat = "%f" % y
+            self.statusctrl.SetValue("x=" +xformat + " y=" +yformat)
+
+    def ChangeCursor(self, event):
+        self.canvas.SetCursor(wx.StockCursor(wx.CURSOR_BULLSEYE))
 
     def OnPlotUpdate(self, msg):
         if msg.topic[-1] == 'plot_data':
@@ -277,13 +301,13 @@ class MPLPanel(wx.Panel):
                     self.ax_dict[index].set_title(self.title)
                 if 'TORR' in key:
                     self.ax_dict[index].set_yscale('log')
-                self.ax_dict[index].legend(loc='best').get_frame().set_alpha(.5)
+                self.ax_dict[index].legend(loc="best").get_frame().set_alpha(.5)
                 if index == (num_units-1):
                     self.ax_dict[index].set_xlabel(str("T1 = "+ self.start+\
                                                            "      T2 = "+\
                                                            self.end))
-
-                self.ax_dict[index].grid(b=self.grid, which='both')
+                    self.ax_dict[index].grid(b=self.grid, which='both')
+                    # Grid won't show without newest version of matplotlib
             self.fig.autofmt_xdate()
             self.canvas.draw()
             wx.PostEvent(self, ResultEvent(['control', 'update button']))
@@ -295,21 +319,6 @@ class MPLPanel(wx.Panel):
             self.start = msg.data['start']
             self.end = msg.data['end']
             self.grid = msg.data['grid']
-
-class ACNETQuery(threading.Thread):
-    def __init__(self, wxObject, channels, start, end, print_method=None):
-        super(ACNETQuery, self).__init__()
-        self.wxObject = wxObject
-        self.channels = channels
-        self.start = start
-        self.end = end
-        self.print_method = print_method
-
-    def run(self):
-        query = p2acnet.P2ACNET(self.channels, self.start, self.end,\
-                                    print_method=self.print_method)
-        data = query.get_group_data()
-        wx.PostEvent(self.wxObject, ResultEvent(['plot_data', data]))
 
 class LoggerCtrl(wx.TextCtrl):
     def __init__(self, *args, **kwargs):
@@ -348,7 +357,7 @@ class P2Frame(wx.Frame):
 
 class P2App(wx.App):
     def OnInit(self):
-        self.frame = P2Frame(None, title="HoloGUI", size=(1000, 700))
+        self.frame = P2Frame(None, title="P2ACNET GUI", size=(1000, 700))
         self.frame.Show(True)
         # Initialize the notification system
         self.notify = Notifier()

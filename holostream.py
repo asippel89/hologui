@@ -238,16 +238,16 @@ class MPLPanel2(wx.Panel):
 
         # Setup the toolbar/statustextctrl
         self.toolbar = NavigationToolbar(self.canvas)
-        self.statusctrl = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_RIGHT)
+        self.toolbar.AddSeparator()
+        self.statusctrl = wx.TextCtrl(self.toolbar, style=wx.TE_READONLY, \
+                                          size=wx.Size(300,25))
+        self.toolbar.AddControl(self.statusctrl)
         
 
         # Do the layout
-        hbox = wx.BoxSizer(wx.HORIZONTAL)
-        hbox.Add(self.toolbar, 0)
-        hbox.Add(self.statusctrl, 1)
         panelvbox = wx.BoxSizer(wx.VERTICAL)
         panelvbox.Add(self.canvas, 1, flag=wx.EXPAND|wx.GROW|wx.ALL)
-        panelvbox.Add(hbox, 0, flag=wx.EXPAND|wx.GROW|wx.ALL)
+        panelvbox.Add(self.toolbar, 0, flag=wx.EXPAND|wx.GROW|wx.ALL)
         self.SetSizer(panelvbox)
         panelvbox.Fit(self)
         self.canvas.draw()
