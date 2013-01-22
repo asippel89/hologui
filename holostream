@@ -147,7 +147,7 @@ class ControlPanel(wx.Panel):
         
     def onTestThread(self, event):
         if self.is_paused == 0:
-            self.redraw_timer.Start(200)
+            self.redraw_timer.Start(500)
             self.testButton.SetLabel('Pause')
             self.resetButton.Enable()
             self.is_paused = 1
