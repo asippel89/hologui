@@ -62,10 +62,21 @@ class ControlPanel(wx.Panel):
         self.createControls()
         self.bindEvents()
         self.doLayout()
+
+        # Create dictionary of dictionaries for holding form data
+        self.panel_dict = defaultdict(int)
+        self.form_dict = {'Active_Tab_ID': '', 'Active_Tab_Label': '', \
+                              'Title': '', 'Verbose': '', 'Grid': '', 'Channels': '',\
+                              'Start_Time': '', 'End_Time': ''}
+
+        # Create other state variables
+        self.current_active_tab = None
         
         Publisher.subscribe(self.updateDisplay, MSG_NOTIFY_ROOT)        
 
     def createControls(self):
+        self.activetabLabel = wx.StaticText(self, label="Active Tab:")
+        self.activetabCtrl = wx.StaticText(self, label="Not Sure")
         self.runButton = wx.Button(self, label="Run")
         self.titleLabel = wx.StaticText(self, label="Title:")
         self.titleTextCtrl = wx.TextCtrl(self, value="Enter plot title here")
@@ -83,20 +94,35 @@ class ControlPanel(wx.Panel):
         self.verboseCheckBox.SetValue(True)
         self.gridCheckBox = wx.CheckBox(self, label="Show Grid?")
         self.gridCheckBox.SetValue(False)
-                                          
+        
+        # Create a Container for use with storing controls
+        self.field_container = [self.activetabCtrl, self.titleTextCtrl, \
+                                    self.channelComboBox, self.starttimeComboBox, \
+                                    self.endtimeComboBox, self.verboseCheckBox, \
+                                    self.gridCheckBox]
 
     def doLayout(self):
         # A GridSizer will contain the controls:
-        gridSizer = wx.FlexGridSizer(rows=11, cols=2, vgap=10, hgap=10)
+        gridSizer = wx.FlexGridSizer(rows=13, cols=2, vgap=10, hgap=10)
 
         # Prepare some reusable arguments for calling sizer.Add():
         expandOption = dict(flag=wx.EXPAND)
         noOptions = dict()
         emptySpace = ((0, 0), noOptions)
 
+        # Active tab gets its own sizer
+        tab_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        tab_sizer.Add(self.activetabLabel)
+        tab_sizer.AddSpacer((5, 0))
+        tab_sizer.Add(self.activetabCtrl)
+
         # Add the controls to the sizers:
         for control, options in \
-                [(self.titleLabel, expandOption),
+                [emptySpace,
+                 emptySpace,
+                 (tab_sizer, expandOption),
+                 emptySpace, 
+                 (self.titleLabel, expandOption),
                  emptySpace,
                  (self.titleTextCtrl, expandOption),
                  emptySpace,
@@ -118,45 +144,37 @@ class ControlPanel(wx.Panel):
                  emptySpace,
                  (self.runButton, dict(flag=wx.ALIGN_CENTER))]:
             gridSizer.Add(control, **options)
-        self.SetSizer(gridSizer)
+        # Finally, add a horizontal sizer to give extra space
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        hsizer.AddSpacer((10, 0))
+        hsizer.Add(gridSizer)
+            
+        self.SetSizer(hsizer)
 
     def bindEvents(self):
+        # Written this way to make it easy to add more bindings
         for control, event, handler in \
-            [(self.runButton, wx.EVT_BUTTON, self.onRun),
-             (self, wx.EVT_TEXT, self.onTextEntered),
-             (self, wx.EVT_COMBOBOX, self.onComboChanged),
-             (self, wx.EVT_CHECKBOX, self.onCheckboxChanged)]:
+            [(self.runButton, wx.EVT_BUTTON, self.onRun)]:
             control.Bind(event, handler)
 
-    def onTextEntered(self, event):
-        # evt_obj = event.GetEventObject()
-        # print "Entered Text into %s" % evt_obj.GetLabel()
-        pass
+    def get_form_content(self):
+        for form_element in self.field_container:
+            if type(form_element) is wx._controls.StaticText:
+                self.form_dict[form_element] = form_element.GetLabel()
+            else:
+                self.form_dict[form_element] = form_element.GetValue()
 
-    def onComboChanged(self, event):
-        # evt_obj = event.GetEventObject()
-        # print "Changed the combobox for %s" %evt_obj
-        pass
-
-    def onCheckboxChanged(self, event):
-        # evt_obj = event.GetEventObject()
-        # print "Changed the checkbox for %s" %evt_obj
-        pass
+    def get_panel_label(self):
+        self.form_dict[self.activetabCtrl] = self.activetabCtrl.GetLabel()
 
     def onRun(self, event):
         """
         Runs the thread, sending the query to acnet and reporting the results
         to the mplpanel via the custom event ResultEvent
         """
-        # notify = wx.GetApp().GetNotify()
-        # TestThread(self)
-        # notify.SetValue('logger', "Thread started!\n")
-        # self.runButton.Disable()
-
         Title = self.titleTextCtrl.GetValue()
         if Title == 'Enter plot title here':
             Title = ''
-        # wx.PostEvent(self, ResultEvent(['mpl_canvas', str(Title)]))
         Channel = str(self.channelComboBox.GetValue())
         if Channel == 'T-IFO':
             Channel_list = ['E:TCIP', 'E:TNIP0', 'E:TNIP1', 'E:TNESIP', 'E:TEIP0',\
@@ -184,10 +202,6 @@ class ControlPanel(wx.Panel):
         mplcanvas_msg_dict = dict([('title', Title), ('start', start_fmt), \
                                       ('end', end_fmt), ('grid', Grid)])
         wx.PostEvent(self, ResultEvent(['mpl_canvas', mplcanvas_msg_dict]))
-        #------ Not sure why the following gives a type error for the thread.start()
-        #------ method...
-        # query = ACNETQuery(self, Channel_list, Start_time, End_time)
-        # query.start()
         def innerrun():
             query = p2acnet.P2ACNET(Channel_list, Start_time, End_time, \
                                         verbose=Verbose, \
@@ -201,7 +215,7 @@ class ControlPanel(wx.Panel):
         Query.start()
         self.runButton.Disable()
         self.printLogger('Query Started')
-
+    
     def get_date(self, days='Today'):
         '''
         This method returns today's date/time formatted according to the ACNET time
@@ -223,6 +237,42 @@ class ControlPanel(wx.Panel):
         if msg.topic[-1] == 'control':
             if msg.data in 'update button':
                 self.runButton.Enable()
+        if msg.topic[-1] == 'nb_panel_changed':
+            print "nb_panel_change event"
+            if len(self.panel_dict) is not 0:
+                if type(self.panel_dict[msg.data[0]]) is int:
+                    self.activetabCtrl.SetLabel(msg.data[1])
+                if type(self.panel_dict[msg.data[0]]) is not int:
+                    self.retrieve_form_info(msg.data[0])
+            else:
+                self.activetabCtrl.SetLabel(msg.data[1])
+            self.current_active_tab = msg.data[0]
+            print "Current Active Tab ID:", self.current_active_tab
+        if msg.topic[-1] == 'nb_panel_changing':
+            print "nb_panel_changing event"
+            self.store_fields(self.current_active_tab)
+
+    def retrieve_panel_label(self, tab_data):
+        print tab_data
+        for (form_element, value) in self.panel_dict[tab_data[0]].items():
+            form_element.SetLabel(tab_data[1])
+
+    def retrieve_form_info(self, tab_index):
+        for (form_element, value) in self.panel_dict[tab_index].items():
+            # form_element.SetLabel(value)
+            if isinstance(form_element, wx._controls.ComboBox):
+                print "type Form_element", str(type(form_element))
+                print "value", value
+                form_element.SetValue(value)
+            # if type(form_element) is wx._controls.CheckBox:
+            #     form_element.SetValue(value)
+
+    def store_fields(self, active_tab_index):
+        # This will store the fields in a dictionary of dictionaries
+        #   where the keys of the larger dictionaries are the notebook tab
+        #   ID's and the values are the dictionaries of field:value pairs
+        self.get_form_content()
+        self.panel_dict[active_tab_index] = self.form_dict
 
 class MPLPanel(wx.Panel):
     def __init__(self, *args, **kwargs):
@@ -239,7 +289,7 @@ class MPLPanel(wx.Panel):
         self.toolbar = NavigationToolbar(self.canvas)
         self.toolbar.AddSeparator()
         self.statusctrl = wx.TextCtrl(self.toolbar, style=wx.TE_READONLY, \
-                                          size=wx.Size(300,25))
+                                          size=wx.Size(250,25))
         self.toolbar.AddControl(self.statusctrl)
 
         # Bind mouse events to mplcanvas
@@ -274,8 +324,6 @@ class MPLPanel(wx.Panel):
 
     def OnPlotUpdate(self, msg):
         if msg.topic[-1] == 'plot_data':
-            # if not self.ax:
-            #     self.ax = self.fig.add_subplot(111)
             if self.ax_dict != None:
                 for i in self.ax_dict.keys():
                     self.ax_dict[i].clear()
@@ -330,18 +378,21 @@ class LoggerCtrl(wx.TextCtrl):
         """
         Receives data from thread and updates the display
         """
-        if msg.topic[-1] == 'logger':
+        if 'logger' in msg.topic[-1]:
             t = msg.data
-            if isinstance(t, int):
-                self.AppendText("Time:%s seconds\n" % t)
-            else:
-                self.AppendText(t)
+            self.AppendText(str(t))
+
+MPLPanel_ID = wx.NewId()
 
 class P2Frame(wx.Frame):
     def __init__(self, *args, **kwargs):
         super(P2Frame, self).__init__(*args, **kwargs)
         self._mgr = wx.aui.AuiManager(self)
-        mplpanel = MPLPanel(self)
+        mplpanel1 = MPLPanel(self, MPLPanel_ID)
+        mplpanel2 = MPLPanel(self, MPLPanel_ID+1)
+        self.auinb = wx.aui.AuiNotebook(self)
+        self.auinb.AddPage(mplpanel1, "Plot Canvas 1", select=True)
+        self.auinb.AddPage(mplpanel2, "Plot Canvas 2")
         loggerctrl = LoggerCtrl(self, size=wx.Size(800, 100), \
                                     style=wx.TE_MULTILINE|wx.TE_READONLY)
         controlpanel = ControlPanel(self, size=wx.Size(250, 400))
@@ -349,11 +400,44 @@ class P2Frame(wx.Frame):
         self._mgr.AddPane(controlpanel,\
                           wx.aui.AuiPaneInfo().Caption('P2ACNET Controls').
                           Left().MinimizeButton(True))
-        self._mgr.AddPane(mplpanel, wx.aui.AuiPaneInfo().Caption('Plot Canvas').
+        self._mgr.AddPane(self.auinb, wx.aui.AuiPaneInfo().Caption('Plot Panel').
                           Center().MinimizeButton(True).MaximizeButton(True))
         self._mgr.AddPane(loggerctrl, wx.aui.AuiPaneInfo().Caption('Notifications').
                           Bottom().MinimizeButton(True).MaximizeButton(True))
         self._mgr.Update()
+
+        # Bind notebook panel change events
+        self.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.on_page_changed)
+        self.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CHANGING, self.on_page_changing)
+        
+        # Send active panel info to control Panel
+        active_tab_index = self.auinb.GetSelection()
+        active_tab_info_list = [active_tab_index, \
+                                    self.auinb.GetPageText(active_tab_index)]
+        wx.PostEvent(self, ResultEvent(['nb_panel_changed',\
+                                            active_tab_info_list]))
+        
+        # Observer of Notify Events
+        # Publisher.subscribe(self.on_posted_event, MSG_NOTIFY_ROOT)
+        
+    def on_page_changed(self, event):
+        active_tab_index = self.auinb.GetSelection()
+        active_tab_label = self.auinb.GetPageText(active_tab_index)
+        active_tab_info_list = [active_tab_index, active_tab_label]
+        wx.PostEvent(self, ResultEvent(['nb_panel_changed',\
+                                            active_tab_info_list]))
+    
+    def on_page_changing(self, event):
+        # This is for notifying the control panel that the active tab
+        #  will be changing, so it should record its fields
+
+        active_tab_index = self.auinb.GetSelection()
+        active_tab_label = self.auinb.GetPageText(active_tab_index)
+        active_tab_info_list = [active_tab_index, active_tab_label]
+        wx.PostEvent(self, ResultEvent(['nb_panel_changing',\
+                                            active_tab_info_list]))
+
+
 
 class P2App(wx.App):
     def OnInit(self):

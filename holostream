@@ -15,6 +15,8 @@ import threading
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+import timedatastruct as tds
+import spectrum_gen as sgen
 
 ID_CreatePerspective = wx.NewId()
 ID_CopyPerspective = wx.NewId()
@@ -136,18 +138,17 @@ class ControlPanel(wx.Panel):
         if Title == 'Enter plot title here':
             Title = ''
         Verbose = self.verboseCheckBox.GetValue()
-        # mplcanvas_msg_dict = dict([('title', Title), ('start', start_fmt), \
-        #                               ('end', end_fmt), ('grid', Grid)])
-        # wx.PostEvent(self, ResultEvent(['mpl_canvas', mplcanvas_msg_dict]))
         def innerrun():
             pass
         Query = threading.Thread(target=innerrun)
         Query.start()
         self.printLogger('Query Started')
+        self.printLogger('Query Finished because it was nothing')
+        self.runButton.Enable()
         
     def onTestThread(self, event):
         if self.is_paused == 0:
-            self.redraw_timer.Start(500)
+            self.redraw_timer.Start(100)
             self.testButton.SetLabel('Pause')
             self.resetButton.Enable()
             self.is_paused = 1
@@ -243,7 +244,6 @@ class MPLPanel2(wx.Panel):
                                           size=wx.Size(300,25))
         self.toolbar.AddControl(self.statusctrl)
         
-
         # Do the layout
         panelvbox = wx.BoxSizer(wx.VERTICAL)
         panelvbox.Add(self.canvas, 1, flag=wx.EXPAND|wx.GROW|wx.ALL)
@@ -255,13 +255,7 @@ class MPLPanel2(wx.Panel):
         # Bind mouse events to mplcanvas
         # Note that event is a MplEvent
         self.canvas.mpl_connect('motion_notify_event', self.UpdateStatusBar)
-        self.canvas.Bind(wx.EVT_ENTER_WINDOW, self.ChangeCursor)
-
-        # Add the statusbar
-        # self.statusBar = wx.StatusBar(self)
-        # self.statusBar.SetFieldsCount(1)
-        # self.SetStatusBar(self.statusBar)
-
+        # self.canvas.Bind(wx.EVT_ENTER_WINDOW, self.ChangeCursor)
 
         # Observer of Notify events
         Publisher.subscribe(self.OnEventUpdate, MSG_NOTIFY_ROOT)
