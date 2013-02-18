@@ -3,7 +3,10 @@
 #hologui.py
 
 import wx
-import wx.aui
+try:
+    from agw import aui
+except ImportError: # if it's not there locally, try the wxPython lib.
+    import wx.lib.agw.aui as aui
 import matplotlib
 matplotlib.use('WXAgg')
 from matplotlib.figure import Figure
@@ -197,6 +200,8 @@ class ControlPanel(wx.Panel):
         End_time = str(self.endtimeComboBox.GetValue())
         if End_time == 'Now':
             end_fmt = self.get_date()
+        else:
+            end_fmt = End_time
         Verbose = self.verboseCheckBox.GetValue()
         Grid = self.gridCheckBox.GetValue()
         mplcanvas_msg_dict = dict([('title', Title), ('start', start_fmt), \
@@ -387,10 +392,10 @@ MPLPanel_ID = wx.NewId()
 class P2Frame(wx.Frame):
     def __init__(self, *args, **kwargs):
         super(P2Frame, self).__init__(*args, **kwargs)
-        self._mgr = wx.aui.AuiManager(self)
+        self._mgr = aui.AuiManager(self)
         mplpanel1 = MPLPanel(self, MPLPanel_ID)
         mplpanel2 = MPLPanel(self, MPLPanel_ID+1)
-        self.auinb = wx.aui.AuiNotebook(self)
+        self.auinb = aui.AuiNotebook(self)
         self.auinb.AddPage(mplpanel1, "Plot Canvas 1", select=True)
         self.auinb.AddPage(mplpanel2, "Plot Canvas 2")
         loggerctrl = LoggerCtrl(self, size=wx.Size(800, 100), \
@@ -398,17 +403,17 @@ class P2Frame(wx.Frame):
         controlpanel = ControlPanel(self, size=wx.Size(250, 400))
         
         self._mgr.AddPane(controlpanel,\
-                          wx.aui.AuiPaneInfo().Caption('P2ACNET Controls').
+                          aui.AuiPaneInfo().Caption('P2ACNET Controls').
                           Left().MinimizeButton(True))
-        self._mgr.AddPane(self.auinb, wx.aui.AuiPaneInfo().Caption('Plot Panel').
+        self._mgr.AddPane(self.auinb, aui.AuiPaneInfo().Caption('Plot Panel').
                           Center().MinimizeButton(True).MaximizeButton(True))
-        self._mgr.AddPane(loggerctrl, wx.aui.AuiPaneInfo().Caption('Notifications').
+        self._mgr.AddPane(loggerctrl, aui.AuiPaneInfo().Caption('Notifications').
                           Bottom().MinimizeButton(True).MaximizeButton(True))
         self._mgr.Update()
 
         # Bind notebook panel change events
-        self.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.on_page_changed)
-        self.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CHANGING, self.on_page_changing)
+        self.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.on_page_changed)
+        self.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGING, self.on_page_changing)
         
         # Send active panel info to control Panel
         active_tab_index = self.auinb.GetSelection()
