@@ -31,7 +31,7 @@ total_holographic_var = 4 * c * T_p * 40 / np.pi
             # shouldn't this be 4 * T_p * L**2 / pi, where L is 40?
 
     
-def gen_spec(timedelta = 1, max_freq = 25e6, num_points = 2**12):
+def gen_spec(timedelta, max_freq = 25e6, num_points = 2**12):
     # Define frequency component for arrays
     f = np.linspace(1, max_freq, num_points)
     
@@ -56,11 +56,20 @@ def holo_PSD(max_freq, L = 40):
 
 if __name__ == '__main__':
     
-    data = gen_spec(1e6)
-    print data
-    print len(data)
-    x = np.linspace(1, 25e6, 2**15)/1e6
+    # data = gen_spec(timedelta=1)
+    
+    # print data
+    # print len(data)
+    # x = np.linspace(1, 25e6, 2**12)/1e6
+    # print len(x)
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111)
+    # ax.semilogy(x, data)
+    # plt.show()
+    x = np.linspace(1, 25e6, 2**12)/1e6
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.semilogy(x, data)
+    for i in range(1, 10000000, 1000000):
+        data = gen_spec(timedelta=i)
+        ax.semilogy(x, data)
     plt.show()

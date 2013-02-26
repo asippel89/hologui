@@ -18,8 +18,9 @@ class CSDFrame(wx.Frame):
     def __init__(self, *args, **kwargs):
         super(CSDFrame, self).__init__(*args, **kwargs)
         self._mgr = aui.AuiManager(self)
+        self.presenter_dict = {}
         # Variables for number of plot tabs of each type
-        self.num_avg_plots = 0
+        self.num_rms_plots = 0
         self.num_csd_plots = 0
         self.tab_settings_dict = {}
 
@@ -55,11 +56,20 @@ class CSDFrame(wx.Frame):
         self._mgr.AddPane(self.csdviewtoolbar, aui.AuiPaneInfo().\
                               Caption('CSD View Options').\
                               ToolbarPane().Bottom())
+
+        # Populate with a couple initial plot panels
+        self.create_plot_tab('RMS')
+        self.create_plot_tab('CSD')
         self._mgr.Update()
 
     def on_page_close(self, event):
         active_tab = self.auinb.GetSelection()
         active_tab_label = self.auinb.GetPageText(active_tab)
+        # Unsubscribe pane's presenter from pubsub
+        # using presenter_dict
+        canvas = self.auinb.GetCurrentPage() # this is the actual plot canvas
+        presenter = self.presenter_dict[canvas]
+        presenter.unsubscribe_all()
         self._mgr.ClosePane(self._mgr.
                             GetPane(self.tab_settings_dict[active_tab_label]))
         self._mgr.Update()
@@ -83,16 +93,18 @@ class CSDFrame(wx.Frame):
         if event.GetEventObject() == self.csdviewtoolbar.addCSDButton:
             self.create_plot_tab('CSD')
         else:
-            self.create_plot_tab('AVG')
+            self.create_plot_tab('RMS')
 
     def create_plot_tab(self, plot_type):
-        if 'AVG' in plot_type:
-            self.num_avg_plots += 1
-            avgplotpresenter = mplpanel.AVGPlotPresenter(self)
-            canvas = avgplotpresenter.canvas
-            settings = avgplotpresenter.settings
-            plotlabel = 'AVG Plot '+str(self.num_avg_plots)
-            settingslabel = 'avgsett'+str(self.num_avg_plots)
+        if 'RMS' in plot_type:
+            self.num_rms_plots += 1
+            rmsplotpresenter = mplpanel.RMSPlotPresenter(self)
+            canvas = rmsplotpresenter.canvas
+            settings = rmsplotpresenter.settings
+            plotlabel = 'RMS Plot '+str(self.num_rms_plots)
+            settingslabel = 'rmssett'+str(self.num_rms_plots)
+            # add to presenter_dict
+            self.presenter_dict[canvas] = rmsplotpresenter
             self.tab_settings_dict[plotlabel] = settingslabel
             self.auinb.AddPage(canvas, plotlabel, \
                                    select=True)
@@ -100,6 +112,7 @@ class CSDFrame(wx.Frame):
                               Name(settingslabel).
                               Caption(plotlabel+' Settings').
                               Left().MinimizeButton())
+            
             self._mgr.Update()
         if 'CSD' in plot_type:
             self.num_csd_plots += 1
@@ -108,6 +121,8 @@ class CSDFrame(wx.Frame):
             settings = csdplotpresenter.settings
             plotlabel = 'CSD Plot ' +str(self.num_csd_plots)
             settingslabel = 'csdsett'+str(self.num_csd_plots)
+            # add to presenter_dict
+            self.presenter_dict[canvas] = csdplotpresenter
             self.tab_settings_dict[plotlabel] = settingslabel
             self.auinb.AddPage(canvas, plotlabel,\
                                    select=True)

@@ -56,16 +56,23 @@ class ConnSettingsPresenter(object):
         self.tb = Toolbar(self.frame, -1, wx.DefaultPosition, wx.DefaultSize, 
                           agwStyle=aui.AUI_TB_OVERFLOW | aui.AUI_TB_TEXT |\
                               aui.AUI_TB_HORZ_TEXT)
-        self.tb.Bind(wx.EVT_BUTTON, self.on_button)
+        self.tb.connectButton.Bind(wx.EVT_BUTTON, self.on_connect_button)
         pub.subscribe(self.update_connsett, 'connsett')
 
     def update_connsett(self, event):
-        if event.data == 'update_button':
-            self.tb.toggle_connect_button()
+        if event.data == 'connected':
+            self.tb.connectButton.Enable()
+            self.tb.connectButton.SetLabel('Disconnect')
+        if event.data == 'disconnected':
+            self.tb.connectButton.SetLabel('Connect')
 
-    def on_button(self, event):
-        values_dict = self.tb.report_field_values()
-        pub.sendMessage('logger', values_dict)
+    def on_connect_button(self, event):
+        if self.tb.connectButton.GetLabel() == 'Connect':
+            values_dict = self.tb.report_field_values()
+            pub.sendMessage('controller.connect', values_dict)
+            self.tb.connectButton.Disable()
+        if self.tb.connectButton.GetLabel() == 'Disconnect':
+            pub.sendMessage('controller.disconnect', 'blahh')
 
 if __name__ == '__main__':
 

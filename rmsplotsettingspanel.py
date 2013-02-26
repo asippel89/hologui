@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#avgplotsettingspanel.py
+#rmsplotsettingspanel.py
 
 import wx
 try:
@@ -12,10 +12,10 @@ from wx.lib.pubsub import Publisher as pub
 RB_View_Options = ['x00', 'x01', 'x02', 'x03', '', 'x11', 'x12', 'x13', '', '', 'x22',\
                        'x23', '', '', '', 'x33']
 
-class AVGPlotSettingsPanel(wx.Panel):
+class RMSPlotSettingsPanel(wx.Panel):
 
     def __init__(self, *args, **kwargs):
-        super(AVGPlotSettingsPanel, self).__init__(*args, **kwargs)
+        super(RMSPlotSettingsPanel, self).__init__(*args, **kwargs)
         self.View_Options = []
         
         self.create_items()
@@ -33,10 +33,11 @@ class AVGPlotSettingsPanel(wx.Panel):
         self.legendCheckBox = wx.CheckBox(self, label="Show Legend?")
         self.dynamicxaxisCheckBox = wx.CheckBox(self, label="Dynamic X-Axis?")
         self.updateButton = wx.Button(self, label="Update")
+        self.selectButton = wx.Button(self, label="Select Region")
                                                   
     def do_layout(self):
         # A GridSizer will contain the controls:
-        gridSizer = wx.FlexGridSizer(rows=9, cols=2, vgap=10, hgap=10)
+        gridSizer = wx.FlexGridSizer(rows=10, cols=2, vgap=10, hgap=10)
 
         # Prepare some reusable arguments for calling sizer.Add():
         expandOption = dict(flag=wx.EXPAND)
@@ -62,6 +63,8 @@ class AVGPlotSettingsPanel(wx.Panel):
                  (self.dynamicxaxisCheckBox, expandOption),
                  emptySpace,
                  (self.updateButton, expandOption),
+                 emptySpace,
+                 (self.selectButton, expandOption),
                  emptySpace]:
             gridSizer.Add(control, **options)
 
@@ -75,12 +78,15 @@ class AVGPlotSettingsPanel(wx.Panel):
     def set_view_options(self, channel_list):
         self.viewoptionsCheckLB.Clear()
         for element in channel_list:
-            self.viewoptionsCheckLB.Append(element)
+            self.viewoptionsCheckLB.Append(str(element))
         return
 
     def get_checked_view_options(self):
         checked_view_options_indexes = self.viewoptionsCheckLB.GetChecked()
-        checked_view_options_strings = self.viewoptionsCheckLB.GetCheckedStrings()
+        checked_view_options_strings_raw = self.viewoptionsCheckLB.GetCheckedStrings()
+        checked_view_options_strings = []
+        for element in checked_view_options_strings_raw:
+            checked_view_options_strings.append(str(element))
         checked_dict = dict(zip(checked_view_options_indexes, \
                                     checked_view_options_strings))
         return checked_dict
@@ -95,17 +101,20 @@ class AVGPlotSettingsPanel(wx.Panel):
         report_dict['dynamicxaxis'] = self.dynamicxaxisCheckBox.IsChecked()
         return report_dict
 
-class AVGSettPresenter(object):
+class RMSSettPresenter(object):
     def __init__(self, frame):
         self.frame = frame
-        self.panel = AVGPlotSettingsPanel(self.frame, size = wx.Size(200,500))
+        self.panel = RMSPlotSettingsPanel(self.frame, size = wx.Size(200,500))
         
         # Event Bindings
         self.panel.Bind(wx.EVT_BUTTON, self.on_button)
 
     def on_button(self, event):
         report_dict = self.panel.report_field_values()
-        pub.sendMessage('logger', report_dict)
+        event.Skip()
+        # Decided not to use pubsub for these changes, as they are so closely tied
+        # to the specific plot canvas
+        # pub.sendMessage('logger', report_dict)
 
 if __name__ == '__main__':
 
@@ -120,7 +129,7 @@ if __name__ == '__main__':
             self.testButton2 = wx.Button(self, label="Get Checked Views")
             self.testButton3 = wx.Button(self, label="Load Form Test")
             self.Bind(wx.EVT_BUTTON, self.on_test_button)
-            self.panel = AVGPlotSettingsPanel(self, size=wx.Size(300, 800))
+            self.panel = RMSPlotSettingsPanel(self, size=wx.Size(300, 800))
             self._mgr.AddPane(self.panel, aui.AuiPaneInfo().Name('plotsettingspanel').
                               Caption('Plot Settings').
                               Left().MaximizeButton())

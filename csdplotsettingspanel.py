@@ -69,12 +69,15 @@ class CSDPlotSettingsPanel(wx.Panel):
     def set_view_options(self, channel_list):
         self.viewoptionsCheckLB.Clear()
         for element in channel_list:
-            self.viewoptionsCheckLB.Append(element)
+            self.viewoptionsCheckLB.Append(str(element))
         return
 
     def get_checked_view_options(self):
         checked_view_options_indexes = self.viewoptionsCheckLB.GetChecked()
-        checked_view_options_strings = self.viewoptionsCheckLB.GetCheckedStrings()
+        checked_view_options_strings_raw = self.viewoptionsCheckLB.GetCheckedStrings()
+        checked_view_options_strings = []
+        for element in checked_view_options_strings_raw:
+            checked_view_options_strings.append(str(element))
         checked_dict = dict(zip(checked_view_options_indexes, \
                                     checked_view_options_strings))
         return checked_dict
@@ -93,13 +96,6 @@ class CSDSettPresenter(object):
         self.frame = frame
         self.panel = CSDPlotSettingsPanel(self.frame, size = wx.Size(200,500))
         
-        # Event Bindings
-        self.panel.Bind(wx.EVT_BUTTON, self.on_button)
-
-    def on_button(self, event):
-        report_dict = self.panel.report_field_values()
-        pub.sendMessage('logger', report_dict)
-
 if __name__ == '__main__':
 
     class MyFrame(wx.Frame):
