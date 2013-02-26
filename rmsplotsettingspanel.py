@@ -32,6 +32,7 @@ class RMSPlotSettingsPanel(wx.Panel):
         self.gridCheckBox.SetValue(False)
         self.legendCheckBox = wx.CheckBox(self, label="Show Legend?")
         self.dynamicxaxisCheckBox = wx.CheckBox(self, label="Dynamic X-Axis?")
+        self.dynamicxaxisCheckBox.SetValue(True)
         self.updateButton = wx.Button(self, label="Update")
         self.selectButton = wx.Button(self, label="Select Region")
                                                   

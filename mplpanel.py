@@ -71,6 +71,9 @@ class CSDPlotPresenter(object):
         self.run_info = None
         self.y_label = None
         self.f_samp = None
+        self.title = None
+        self.grid = None
+        self.legend = None
         # Create settings toolbar presenter
         self.settingspresenter = csdsett.CSDSettPresenter(self.frame)
         self.settings = self.settingspresenter.panel
@@ -127,7 +130,13 @@ class CSDPlotPresenter(object):
                     self.canvas.ax.plot(x_data, \
                                             self.csd_data[channel], '-', label=channel)
             if len(self.csd_data) > 0:
-                self.canvas.ax.legend(loc='upper right')
+                if self.legend is not None:
+                    if self.legend:
+                        self.canvas.ax.legend(loc='upper right')
+                if self.grid is not None:
+                    self.canvas.ax.grid(self.grid, which='both')
+                if self.title is not None:
+                    self.canvas.ax.set_title(self.title)
                 self.canvas.ax.set_ylabel(self.y_label)
             self.canvas.ax.set_yscale('log')
             self.canvas.canvas.draw()
@@ -135,6 +144,9 @@ class CSDPlotPresenter(object):
     def update_plot_settings(self, report_dict):
         # Need to clear data_dict corresponding to subscribed channels
         self.subscribed_channels = report_dict['checked_view_options'].values()
+        self.title = report_dict['title']
+        self.grid = report_dict['grid']
+        self.legend = report_dict['legend']
         pub.sendMessage('logger', 'Plot settings (notyetfully) updated')        
 
     def on_update_button(self, event):
@@ -171,6 +183,10 @@ class RMSPlotPresenter(object):
         # Attributes related to plot settings
         self.run_info = None
         self.y_label = None
+        self.title = None
+        self.grid = None
+        self.legend = None
+        self.dynamic_X = None
         # Create settings toolbar presenter
         self.settingspresenter = rmssett.RMSSettPresenter(self.frame)
         self.settings = self.settingspresenter.panel
@@ -252,7 +268,13 @@ class RMSPlotPresenter(object):
                                             self.rms_data[channel], '-',\
                                                  label=str(channel))
             if len(self.times_data) > 0:
-                self.canvas.ax.legend(loc='upper right')
+                if self.legend is not None:
+                    if self.legend:
+                        self.canvas.ax.legend(loc='upper right')
+                if self.grid is not None:
+                    self.canvas.ax.grid(self.grid, which='both')
+                if self.title is not None:
+                    self.canvas.ax.set_title(self.title)
                 self.canvas.ax.set_ylabel(self.y_label)
             self.canvas.fig.autofmt_xdate()
             self.canvas.ax.set_yscale('log')
@@ -268,6 +290,9 @@ class RMSPlotPresenter(object):
 
     def update_plot_settings(self, report_dict):
         self.subscribed_channels = report_dict['checked_view_options'].values()
+        self.title = report_dict['title']
+        self.grid = report_dict['grid']
+        self.legend = report_dict['legend']
         pub.sendMessage('logger', 'Plot settings (notyetfully) updated')
 
     def update_channels(self, event):
