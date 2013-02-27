@@ -147,7 +147,7 @@ class CSDPlotPresenter(object):
         self.title = report_dict['title']
         self.grid = report_dict['grid']
         self.legend = report_dict['legend']
-        pub.sendMessage('logger', 'Plot settings (notyetfully) updated')        
+        pub.sendMessage('logger', 'Plot settings updated')        
 
     def on_update_button(self, event):
         if event.GetEventObject() == self.settings.updateButton:
@@ -186,7 +186,10 @@ class RMSPlotPresenter(object):
         self.title = None
         self.grid = None
         self.legend = None
-        self.dynamic_X = None
+        self.dynamic_x = None
+        self.x_min = None
+        self.x_max = None
+        self.current_x_max = None
         # Create settings toolbar presenter
         self.settingspresenter = rmssett.RMSSettPresenter(self.frame)
         self.settings = self.settingspresenter.panel
@@ -250,11 +253,15 @@ class RMSPlotPresenter(object):
 
     def process_data(self, event):
         timestamp = event.data[0]
+        if self.current_x_max is None:
+            self.current_x_max = timestamp
+        if timestamp > self.current_x_max:
+            self.current_x_max = timestamp
         data_dict = event.data[1]
         for key in data_dict.keys():
             if str(key) in self.subscribed_channels:
                 self.rms_data[key].append(np.sum(data_dict[key]))
-                self.times_data[key].append(mdates.date2num(timestamp))
+                self.times_data[key].append(timestamp)
         self.plot_update()
 
     def plot_update(self):
@@ -267,6 +274,7 @@ class RMSPlotPresenter(object):
                     self.canvas.ax.plot_date(self.times_data[channel], \
                                             self.rms_data[channel], '-',\
                                                  label=str(channel))
+            # Plot Settings Logic
             if len(self.times_data) > 0:
                 if self.legend is not None:
                     if self.legend:
@@ -275,10 +283,25 @@ class RMSPlotPresenter(object):
                     self.canvas.ax.grid(self.grid, which='both')
                 if self.title is not None:
                     self.canvas.ax.set_title(self.title)
+                if self.dynamic_x is not None:
+                    if self.x_min is None:
+                        self.set_x_lim()
+                    if self.dynamic_x is False:
+                        if self.current_x_max > self.x_max:
+                            self.x_max += dt.timedelta(seconds=60)
+                        self.canvas.ax.set_xlim([self.x_min, self.x_max])
                 self.canvas.ax.set_ylabel(self.y_label)
             self.canvas.fig.autofmt_xdate()
             self.canvas.ax.set_yscale('log')
             self.canvas.canvas.draw()
+
+    def set_x_lim(self):
+        if self.x_min is None:
+            self.x_min = dt.datetime.now()
+        for key in self.times_data.keys():
+            if self.x_min < self.times_data[key][0]:
+                self.x_min = self.times_data[key][0]
+        self.x_max = self.x_min + dt.timedelta(seconds=10)
 
     def on_button_press(self, event):
         if event.GetEventObject() == self.settings.updateButton:
@@ -293,7 +316,8 @@ class RMSPlotPresenter(object):
         self.title = report_dict['title']
         self.grid = report_dict['grid']
         self.legend = report_dict['legend']
-        pub.sendMessage('logger', 'Plot settings (notyetfully) updated')
+        self.dynamic_x = report_dict['dynamicxaxis']
+        pub.sendMessage('logger', 'Plot settings updated')
 
     def update_channels(self, event):
         if self.current_available_channels == event.data:
