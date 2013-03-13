@@ -9,7 +9,6 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigCanvas, \
     NavigationToolbar2WxAgg as NavigationToolbar
-import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import datetime as dt
 import csdplotsettingspanel as csdsett
@@ -32,6 +31,9 @@ class MPLPanel(wx.Panel):
 
         # Setup the toolbar/statustextctrl
         self.toolbar = NavigationToolbar(self.canvas)
+        self.toolbar.dynamic_update()
+        self.testButton = wx.Button(self.toolbar, label='Pause')
+        self.toolbar.AddControl(self.testButton)
         self.toolbar.AddSeparator()
         self.statusctrl = wx.StaticText(self.toolbar, style=wx.TE_READONLY, \
                                           size=wx.Size(300,25))
@@ -70,50 +72,70 @@ class CSDPlotPresenter(object):
         self.plot_dict = {}
         self.run_info = None
         self.y_label = None
+        self.x_label = None
         self.f_samp = None
+        self.NFFT = None
         self.title = None
         self.grid = None
         self.legend = None
+        self.update_state = True
         # Create settings toolbar presenter
         self.settingspresenter = csdsett.CSDSettPresenter(self.frame)
         self.settings = self.settingspresenter.panel
         # Bind update button of the settings Panel
-        self.settings.Bind(wx.EVT_BUTTON, self.on_update_button)
         pub.subscribe(self.update_channels, 'available_channels')
         pub.subscribe(self.process_data, 'data_dict')
         pub.subscribe(self.process_run_info, 'run_info')
-
         # Bind mouse events to mplcanvas
         # Note that event is a MplEvent
         self.canvas.canvas.mpl_connect('motion_notify_event', self.UpdateStatusBar)
-        self.canvas.canvas.Bind(wx.EVT_ENTER_WINDOW, self.ChangeCursor)
+        # Bind plot button
+        self.settings.Bind(wx.EVT_BUTTON, self.on_update_button)
+        self.canvas.Bind(wx.EVT_BUTTON, self.on_plot_button)
+
+    def on_plot_button(self, event):
+        if self.update_state:
+            self.canvas.testButton.SetLabel('Resume')
+        else:
+            self.canvas.testButton.SetLabel('Pause')
+        self.toggle_update_state()
+        print 'Plot Button Pressed'
+        return
+
+    def toggle_update_state(self):
+        self.update_state = not self.update_state
+        return
 
     def UpdateStatusBar(self, event):
         """Function to update statusbar with mouse position"""
         if event.inaxes:
-            if len(self.csd_data) > 0: # Only update if there's data
+            if len(self.csd_data) > 0:
                 x, y = event.xdata, event.ydata
-                self.canvas.statusctrl.SetLabel("x= " + str(x) + "  y=" + str(y))
+                self.canvas.statusctrl.SetLabel("x= " + str(x) + 
+                                                "  y=" + str(y)
+                                                )
             else:
                 pass
-
-    def ChangeCursor(self, event):
-        self.canvas.SetCursor(wx.StockCursor(wx.CURSOR_BULLSEYE))
 
     def process_run_info(self, event):
         """Method to set label values to be shown in plot based on run_info"""
         if self.run_info == None:
             self.run_info = event.data
             self.y_label = self.run_info['yunits']
+            self.x_label = self.run_info['xunits']
             self.f_samp = self.run_info['ADC_settings']['f_samp']
+            self.NFFT = self.run_info['NFFT']
         else:
             pass
 
     def process_data(self, event):
         data_dict = event.data[1]
-        for key in data_dict.keys():
-            if str(key) in self.subscribed_channels:
-                self.csd_data[str(key)] = data_dict[key]
+        if data_dict is None:
+            pass
+        else:
+            for key in data_dict.keys():
+                if str(key) in self.subscribed_channels:
+                    self.csd_data[str(key)] = data_dict[key]
         self.plot_update()
 
     def plot_update(self):
@@ -124,11 +146,13 @@ class CSDPlotPresenter(object):
             for channel in self.csd_data.keys():
                 # Need to change this once actual data is coming in!!
                 x_data_len = len(self.csd_data[channel])
-                f_nyquist = 20e6
+                f_nyquist = self.f_samp/2
+                
                 x_data = np.linspace(1, f_nyquist, x_data_len)/self.f_samp
                 self.plot_dict[channel] = \
-                    self.canvas.ax.plot(x_data, \
-                                            self.csd_data[channel], '-', label=channel)
+                    self.canvas.ax.plot(x_data, 
+                                        self.csd_data[channel], '-', label=channel
+                                        )
             if len(self.csd_data) > 0:
                 if self.legend is not None:
                     if self.legend:
@@ -138,8 +162,10 @@ class CSDPlotPresenter(object):
                 if self.title is not None:
                     self.canvas.ax.set_title(self.title)
                 self.canvas.ax.set_ylabel(self.y_label)
+                self.canvas.ax.set_xlabel(self.x_label)
             self.canvas.ax.set_yscale('log')
-            self.canvas.canvas.draw()
+            if self.update_state:
+                self.canvas.canvas.draw()
 
     def update_plot_settings(self, report_dict):
         # Need to clear data_dict corresponding to subscribed channels
@@ -190,6 +216,7 @@ class RMSPlotPresenter(object):
         self.x_min = None
         self.x_max = None
         self.current_x_max = None
+        self.update_state = True
         # Create settings toolbar presenter
         self.settingspresenter = rmssett.RMSSettPresenter(self.frame)
         self.settings = self.settingspresenter.panel
@@ -198,10 +225,35 @@ class RMSPlotPresenter(object):
         pub.subscribe(self.update_channels, 'available_channels')
         pub.subscribe(self.process_data, 'data_dict')
         pub.subscribe(self.process_run_info, 'run_info')
-
         # Bind mouse events to mplcanvas
         # Note that event is a MplEvent
         self.canvas.canvas.mpl_connect('motion_notify_event', self.UpdateStatusBar)
+        # Bind button
+        self.canvas.Bind(wx.EVT_BUTTON, self.on_button)
+
+    def on_button(self, event):
+        if self.update_state:
+            self.canvas.testButton.SetLabel('Resume')
+        else:
+            self.canvas.testButton.SetLabel('Pause')
+        self.toggle_update_state()
+        print 'Plot Button Pressed'
+
+    def UpdateStatusBar(self, event):
+        """Function to update statusbar with mouse position"""
+        if event.inaxes:
+            if len(self.times_data) > 0:
+                x, y = event.xdata, event.ydata
+                xformat = dt.datetime.strftime(mdates.num2date(x), '%d-%b-%Y-%H:%M')
+                self.canvas.statusctrl.SetLabel("x= " + xformat + 
+                                                "  y=" + str(y)
+                                                )
+            else:
+                pass
+
+    def toggle_update_state(self):
+        self.update_state = not self.update_state
+        return
 
     def set_select_mode_on(self):
         self.cid = self.canvas.canvas.mpl_connect('button_press_event', self.on_click)
@@ -222,8 +274,8 @@ class RMSPlotPresenter(object):
                                              '%d-%b-%Y-%H:%M:%S')
             t2fmt = dt.datetime.strftime(mdates.num2date(self.t2_sel),\
                                              '%d-%b-%Y-%H:%M:%S')
-            logmsg = 'Selected the region: t1 ='+str(t1fmt)+\
-                ', t2 ='+str(t2fmt)
+            logmsg = 'Selected the region: t1 = '+str(t1fmt)+\
+                ', t2 = '+str(t2fmt)
             pub.sendMessage('logger', logmsg)
             self.set_select_mode_off()
 
@@ -233,15 +285,6 @@ class RMSPlotPresenter(object):
             # print 'Press: button=%d, x=%d, y=%d, xdata=%f, ydata=%f'\
             #     %(event.button, event.x, event.y, event.xdata, event.ydata)
 
-    def UpdateStatusBar(self, event):
-        """Function to update statusbar with mouse position"""
-        if event.inaxes:
-            if len(self.times_data) > 0: # Only write to statusbar if there's data
-                x, y = event.xdata, event.ydata
-                xformat = dt.datetime.strftime(mdates.num2date(x), '%d-%b-%Y-%H:%M')
-                self.canvas.statusctrl.SetLabel("x= " + xformat + "  y=" + str(y))
-            else:
-                pass
     
     def process_run_info(self, event):
         """Method to set label values to be shown in plot based on run_info"""
@@ -258,10 +301,13 @@ class RMSPlotPresenter(object):
         if timestamp > self.current_x_max:
             self.current_x_max = timestamp
         data_dict = event.data[1]
-        for key in data_dict.keys():
-            if str(key) in self.subscribed_channels:
-                self.rms_data[key].append(np.sum(data_dict[key]))
-                self.times_data[key].append(timestamp)
+        if data_dict is None:
+            pass
+        else:
+            for key in data_dict.keys():
+                if str(key) in self.subscribed_channels:
+                    self.rms_data[key].append(np.sum(data_dict[key]))
+                    self.times_data[key].append(timestamp)
         self.plot_update()
 
     def plot_update(self):
@@ -290,10 +336,11 @@ class RMSPlotPresenter(object):
                         if self.current_x_max > self.x_max:
                             self.x_max += dt.timedelta(seconds=60)
                         self.canvas.ax.set_xlim([self.x_min, self.x_max])
-                self.canvas.ax.set_ylabel(self.y_label)
+            self.canvas.ax.set_ylabel(self.y_label)
             self.canvas.fig.autofmt_xdate()
             self.canvas.ax.set_yscale('log')
-            self.canvas.canvas.draw()
+            if self.update_state:
+                self.canvas.canvas.draw()
 
     def set_x_lim(self):
         if self.x_min is None:
@@ -307,7 +354,7 @@ class RMSPlotPresenter(object):
         if event.GetEventObject() == self.settings.updateButton:
             report_dict = self.settings.report_field_values()
             self.update_plot_settings(report_dict)
-        elif event.GetEventObject() == self.settings.selectButton:
+        if event.GetEventObject() == self.settings.selectButton:
             self.set_select_mode_on()
             self.settings.selectButton.Disable()
 

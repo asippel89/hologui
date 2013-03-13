@@ -43,7 +43,8 @@ class CSDFrame(wx.Frame):
                                                      aui.AUI_TB_TEXT|\
                                                      aui.AUI_TB_HORZ_TEXT)
                                                          
-        self.Bind(wx.EVT_BUTTON, self.on_button)
+        self.csdviewtoolbar.addCSDButton.Bind(wx.EVT_BUTTON, self.on_add_csd_button)
+        self.csdviewtoolbar.addRMSButton.Bind(wx.EVT_BUTTON, self.on_add_rms_button)
         # Add Initial View Objects to Manager
         self._mgr.AddPane(self.conntoolbar, aui.AuiPaneInfo().Name('connTB').
                           Caption('Connection Settings').
@@ -89,11 +90,11 @@ class CSDFrame(wx.Frame):
         self._mgr.GetPane(self.tab_settings_dict[new_active_tab_label]).Show()
         self._mgr.Update()
     
-    def on_button(self, event):
-        if event.GetEventObject() == self.csdviewtoolbar.addCSDButton:
-            self.create_plot_tab('CSD')
-        else:
-            self.create_plot_tab('RMS')
+    def on_add_csd_button(self, event):
+        self.create_plot_tab('CSD')
+
+    def on_add_rms_button(self, event):
+        self.create_plot_tab('RMS')
 
     def create_plot_tab(self, plot_type):
         if 'RMS' in plot_type:

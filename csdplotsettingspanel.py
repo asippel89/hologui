@@ -8,6 +8,8 @@ try:
 except ImportError: # if it's not there locally, try the wxPython lib.
     import wx.lib.agw.aui as aui
 from wx.lib.pubsub import Publisher as pub
+# for sorting:
+from operator import itemgetter
 
 class CSDPlotSettingsPanel(wx.Panel):
 
@@ -20,14 +22,15 @@ class CSDPlotSettingsPanel(wx.Panel):
 
     def create_items(self):
         self.viewoptionsLabel = wx.StaticText(self, label="View which X-Spectra?")
-        self.viewoptionsCheckLB = wx.CheckListBox(self, -1, wx.DefaultPosition,\
-                                                      (70,235), \
-                                                      self.View_Options)
+        self.viewoptionsCheckLB = wx.CheckListBox(self, -1, wx.DefaultPosition,
+                                                  (70,235), 
+                                                  self.View_Options)
         self.titleLabel = wx.StaticText(self, label="Title:")
         self.titleCtrl = wx.TextCtrl(self, value="")
         self.gridCheckBox = wx.CheckBox(self, label="Show Grid?")
         self.gridCheckBox.SetValue(False)
         self.legendCheckBox = wx.CheckBox(self, label="Show Legend?")
+        self.legendCheckBox.SetValue(True)
         self.updateButton = wx.Button(self, label="Update")
                                                   
     def do_layout(self):
@@ -68,7 +71,10 @@ class CSDPlotSettingsPanel(wx.Panel):
 
     def set_view_options(self, channel_list):
         self.viewoptionsCheckLB.Clear()
-        for element in channel_list:
+        # want to sort the items (possibly only relevant when written in tuple form)
+        # may need to return and fix this for general channel lists
+        sorted_channels = sorted(channel_list, key=itemgetter(0,1))
+        for element in sorted_channels:
             self.viewoptionsCheckLB.Append(str(element))
         return
 

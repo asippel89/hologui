@@ -8,16 +8,18 @@ import datetime as dt
 import time
 import bisect
 import spectrum_gen as sgen
-import matplotlib.pyplot as plt
 
 class TimeData(object):
     """General class for dealing with time data in a thread-safe way"""
     def __init__(self):
         self.data_object_list = []
         self.time_list = []
+        # data_object_list and time_list must be kept in sync, do not modify to one
+        # without modifying the other
+        self.running_avg = None
+        self.num_coadded = None
         self.run_information = None
         self.mutex = RLock()
-        pass
 
     def add_data_object(self, data_object):
         with self.mutex:
@@ -29,7 +31,38 @@ class TimeData(object):
                 ins_point = bisect.bisect_left(self.time_list, data_object.get_time())
                 self.data_object_list.insert(ins_point, data_object)
                 self.time_list.insert(ins_point, data_object.get_time())
+                self.calculate_running_avg()
+                # print 'Data object list length:', len(self.data_object_list)
         return
+
+    def retrieve_data_interval(self, start, end):
+        """Method to retrieve an interval of data, returns the spliced list"""
+        with self.mutex:
+            start_ins_point = bisect.bisect_left(self.time_list, start)
+            end_ins_point = bisect.bisect_left(self.time_list, end)
+        return self.data_object_list[start_ins_point:end_ins_point]
+
+    def create_interval_avg(self, indexed_list):
+        """This method is specific to certain types of data"""
+        running_avg = []
+        for index, element in enumerate(indexed_list):
+            data_array = element.get_data()
+            rms = np.sum(data_array)
+            #Do other stuff here
+
+    def calculate_running_avg(self):
+        if self.num_coadded is None:
+            self.num_coadded = self.data_object_list[-1].get_num_coadded()
+        if self.running_avg is None:
+            self.running_avg = self.data_object_list[-1].get_data()
+        else:
+            new_num_coadded = self.data_object_list[-1].get_num_coadded()
+            current_data_dict = self.data_object_list[-1].get_data()
+            for key in self.running_avg.keys():
+                self.running_avg[key] = (current_data_dict[key] + 
+                    self.num_coadded*self.running_avg[key])/new_num_coadded
+                self.num_coadded = new_num_coadded
+        return self.running_avg
 
     def get_current_data(self):
         with self.mutex:
@@ -49,72 +82,45 @@ class TimeData(object):
                 - self.data_object_list[0].get_time()
         return time_delta
 
-    def retrieve_data_interval(self, start, end):
-        """Method to retrieve an interval of data, returns the spliced list"""
-        start_ins_point = bisect.bisect_left(self.time_list, start)
-        end_ins_point = bisect.bisect_left(self.time_list, end)
-        return self.data_object_list[start_ins_point:end_ins_point]
-
-    def create_interval_avg(self, indexed_list):
-        """This method is specific to certain types of data"""
-        running_avg = []
-        for index, element in enumerate(indexed_list):
-            data_array = element.get_data()
-            rms = np.sum(data_array)
-            #Do other stuff here
-            
-class HoloData(object):
-
-    def __init__(self, timedelta):
-        self.now = dt.datetime.now()
-        self.timedelta = timedelta
-        self.tuple_list = [(0,0), (1,0), (1,1), (2,0), (2,1), (2,2), (3,0), (3,1), \
-                               (3,2), (3,3)]
-        self.data_dict = {}
-        self.gen_data()
-        self.run_information = dict([('window_function', 'Hanning'), \
-                                         ('ADC_settings', dict([('f_samp', 1e6), \
-                                                                ('gain', 10)])), \
-                                         ('channel_info', dict([('1', 'test'), \
-                                                                    ('2', 'blah')])), \
-                                         ('yunits', 'V^2/root(Hz)')])
-
-    def gen_data(self):
-        for i in range(len(self.tuple_list)):
-            if self.tuple_list[i][0] == self.tuple_list[i][1]:
-                self.data_dict[self.tuple_list[i]] = sgen.gen_spec(1)
-            else:
-                if self.timedelta < 1:
-                    self.data_dict[self.tuple_list[i]] = sgen.gen_spec(1)
-                else:
-                    self.data_dict[self.tuple_list[i]] = sgen.gen_spec(self.timedelta)
-
-    def get_time(self):
-        return self.now
-
-    def get_data(self):
-        return self.data_dict
-
-    def get_run_info(self):
-        return self.run_information
+    def get_current_running_avg(self):
+        return self.running_avg
 
 class StreamDataTest(object):
     
-    def __init__(self, window, report_data_method):
+    def __init__(self, report_data_method, update_freq=.5, noise_level='Default', \
+                     NFFT='Default', fsamp='Default', int_time='Default'):
         self.keep_going = True
+        self.update_freq = update_freq
+        self.options_dict = dict([('noise_level', noise_level), ('NFFT', NFFT), \
+                                     ('fsamp', fsamp), ('int_time', int_time)])
+        self.supply_args = False
         self.time_start = time.time()
-        self.window = window
         self.report_data = report_data_method
-        self.fake_time = 100
+        self.frame_num = 0
+        self.sampling_rate = 100000000 # 100 MHz
+
+    def _check_defaults(self):
+        '''
+        Need to check if they are default, this class does not have knowledge
+        of what those defaults are
+        '''
+        for value in self.options_dict.values():
+             if value != 'Default':
+                 self.supply_args = True
+        return
 
     def _run_stream(self):
         while self.keep_going:
             now = time.time()
             delta = now - self.time_start
-            data = HoloData(10*delta**2)
+            # May need to divide num_coadded by 2 because of Welch overlap
+            if self.supply_args:
+                data = sgen.HoloData(delta, **self.options_dict)
+            else:
+                data = sgen.HoloData(delta)
             self.report_data(data)
-            self.fake_time += 100
-            time.sleep(.5)
+            self.frame_num += 1
+            time.sleep(self.update_freq)
 
     def run_stream_in_background(self):
         thread = threading.Thread(target=self._run_stream)

@@ -221,6 +221,6 @@ def plot_correlation_noisy(fname = 'correlation_noisy.png'):
 
 
 if __name__ == '__main__':
-    plot = plot_spectral_noisy()
+    plot = plot_holo_correlation()
     pyl.show()
     

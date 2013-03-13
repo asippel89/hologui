@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 #csdcontroller.py
 
 import wx
@@ -54,15 +53,20 @@ class MainController(object):
             pub.sendMessage('connsett', 'disconnected')
             self.stream.keep_going = False
         if 'newdata' in msg.topic:
-            self.handle_new_data(msg.data)
+            if msg.data is None:
+                pass
+            else:
+                self.handle_new_data(msg.data)
 
     def handle_new_data(self, data):
         self.model.add_data_object(data)
         new_data = self.model.get_current_data()
         timestamp = self.model.get_current_time()
         run_info = self.model.get_current_run_info()
+        data_dict = self.model.get_current_data()
+        running_avg = self.model.get_current_running_avg()
         pub.sendMessage('run_info', run_info)
-        time_data = [timestamp, new_data]
+        time_data = [timestamp, data_dict]
         pub.sendMessage('data_dict', time_data)
         available_channels = self.model.get_current_data().keys()
         pub.sendMessage('available_channels', available_channels)
@@ -79,7 +83,7 @@ class MainController(object):
             logmsg = '\tConnected Successfully!'
             global_report_data(self.frame, 'logger', logmsg)
             global_report_data(self.frame, 'connsett', 'connected')
-            self.stream = tds.StreamDataTest(self.frame, self.report_data_method)
+            self.stream = tds.StreamDataTest(self.report_data_method)
             self.stream._run_stream()
         thread = threading.Thread(target=innerrun)
         thread.start()

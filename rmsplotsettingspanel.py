@@ -8,9 +8,8 @@ try:
 except ImportError: # if it's not there locally, try the wxPython lib.
     import wx.lib.agw.aui as aui
 from wx.lib.pubsub import Publisher as pub
-
-RB_View_Options = ['x00', 'x01', 'x02', 'x03', '', 'x11', 'x12', 'x13', '', '', 'x22',\
-                       'x23', '', '', '', 'x33']
+# for sorting:
+from operator import itemgetter
 
 class RMSPlotSettingsPanel(wx.Panel):
 
@@ -31,6 +30,7 @@ class RMSPlotSettingsPanel(wx.Panel):
         self.gridCheckBox = wx.CheckBox(self, label="Show Grid?")
         self.gridCheckBox.SetValue(False)
         self.legendCheckBox = wx.CheckBox(self, label="Show Legend?")
+        self.legendCheckBox.SetValue(True)
         self.dynamicxaxisCheckBox = wx.CheckBox(self, label="Dynamic X-Axis?")
         self.dynamicxaxisCheckBox.SetValue(True)
         self.updateButton = wx.Button(self, label="Update")
@@ -78,7 +78,9 @@ class RMSPlotSettingsPanel(wx.Panel):
 
     def set_view_options(self, channel_list):
         self.viewoptionsCheckLB.Clear()
-        for element in channel_list:
+        # May only work for test case, need to generalize
+        sorted_channels = sorted(channel_list, key=itemgetter(0,1))
+        for element in sorted_channels:
             self.viewoptionsCheckLB.Append(str(element))
         return
 
