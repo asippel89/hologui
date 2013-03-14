@@ -99,7 +99,6 @@ class CSDPlotPresenter(object):
         else:
             self.canvas.testButton.SetLabel('Pause')
         self.toggle_update_state()
-        print 'Plot Button Pressed'
         return
 
     def toggle_update_state(self):
@@ -148,7 +147,7 @@ class CSDPlotPresenter(object):
                 x_data_len = len(self.csd_data[channel])
                 f_nyquist = self.f_samp/2
                 
-                x_data = np.linspace(1, f_nyquist, x_data_len)/self.f_samp
+                x_data = np.linspace(1, f_nyquist, x_data_len)
                 self.plot_dict[channel] = \
                     self.canvas.ax.plot(x_data, 
                                         self.csd_data[channel], '-', label=channel
@@ -237,7 +236,6 @@ class RMSPlotPresenter(object):
         else:
             self.canvas.testButton.SetLabel('Pause')
         self.toggle_update_state()
-        print 'Plot Button Pressed'
 
     def UpdateStatusBar(self, event):
         """Function to update statusbar with mouse position"""
@@ -282,6 +280,8 @@ class RMSPlotPresenter(object):
     def on_click(self, event):
         if event.xdata is not None:
             self.t1_sel = event.xdata
+            self.canvas.ax.axvline(x=self.t1_sel, color='r')
+            self.canvas.canvas.draw()
             # print 'Press: button=%d, x=%d, y=%d, xdata=%f, ydata=%f'\
             #     %(event.button, event.x, event.y, event.xdata, event.ydata)
 

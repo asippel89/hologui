@@ -65,12 +65,14 @@ class ConnSettingsPresenter(object):
             self.tb.connectButton.SetLabel('Disconnect')
         if event.data == 'disconnected':
             self.tb.connectButton.SetLabel('Connect')
+        if event.data == 'enable_button':
+            self.tb.connectButton.Enable()
 
     def on_connect_button(self, event):
         if self.tb.connectButton.GetLabel() == 'Connect':
             values_dict = self.tb.report_field_values()
             pub.sendMessage('controller.connect', values_dict)
-            self.tb.connectButton.Disable()
+            # self.tb.connectButton.Disable()
         if self.tb.connectButton.GetLabel() == 'Disconnect':
             pub.sendMessage('controller.disconnect', 'blahh')
 

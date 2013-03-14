@@ -87,17 +87,16 @@ class TimeData(object):
 
 class StreamDataTest(object):
     
-    def __init__(self, report_data_method, update_freq=.5, noise_level='Default', \
+    def __init__(self, report_data_method, update_int=.5, noise_level='Default', \
                      NFFT='Default', fsamp='Default', int_time='Default'):
         self.keep_going = True
-        self.update_freq = update_freq
+        self.update_int = update_int
         self.options_dict = dict([('noise_level', noise_level), ('NFFT', NFFT), \
                                      ('fsamp', fsamp), ('int_time', int_time)])
         self.supply_args = False
         self.time_start = time.time()
         self.report_data = report_data_method
         self.frame_num = 0
-        self.sampling_rate = 100000000 # 100 MHz
 
     def _check_defaults(self):
         '''
@@ -120,7 +119,7 @@ class StreamDataTest(object):
                 data = sgen.HoloData(delta)
             self.report_data(data)
             self.frame_num += 1
-            time.sleep(self.update_freq)
+            time.sleep(self.update_int)
 
     def run_stream_in_background(self):
         thread = threading.Thread(target=self._run_stream)

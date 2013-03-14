@@ -47,11 +47,13 @@ class MainController(object):
             logmsg = '\tTrying to connect to '+host+' on port '+port
             pub.sendMessage('logger', logmsg)
             self.start_connection(host, port)
-            self.start_test_in_thread()
         if 'disconnect' in msg.topic:
             pub.sendMessage('logger', '\tDisconnecting')
             pub.sendMessage('connsett', 'disconnected')
             self.stream.keep_going = False
+        if msg.topic == ('controller', 'simulate'):
+            print msg.data
+            self.start_test_in_thread(msg.data)
         if 'newdata' in msg.topic:
             if msg.data is None:
                 pass
@@ -72,20 +74,21 @@ class MainController(object):
         pub.sendMessage('available_channels', available_channels)
 
     def start_connection(self, host, port):
-        pass
+        msg = '\tConnection method not yet implemented'
+        pub.sendMessage('logger', msg)
+        return
 
     def report_data_method(self, data):
         wx.PostEvent(self.frame, ResultEvent(['newdata', data]))
 
-    def start_test_in_thread(self):
-        def innerrun():
+    def start_test_in_thread(self, options_dict):
+        def innerrun(**kwargs):
             time.sleep(2)
-            logmsg = '\tConnected Successfully!'
+            logmsg = '\tStarted Simulation Successfully!'
             global_report_data(self.frame, 'logger', logmsg)
-            global_report_data(self.frame, 'connsett', 'connected')
-            self.stream = tds.StreamDataTest(self.report_data_method)
+            self.stream = tds.StreamDataTest(self.report_data_method, **kwargs)
             self.stream._run_stream()
-        thread = threading.Thread(target=innerrun)
+        thread = threading.Thread(target=innerrun, kwargs=options_dict)
         thread.start()
         
     def on_event_result(self, event):

@@ -32,7 +32,7 @@ total_holographic_var = 4 * c * T_p * 40 / np.pi
 
 class HoloData(object):
 
-    def __init__(self, timedelta, int_time=.05, fsamp=100*10**6, NFFT=2**12, \
+    def __init__(self, timedelta, int_time=.05, fsamp=100e6, NFFT=2**12, 
                      noise_level=P_2kW_var_1s):
         self.now = dt.datetime.now()
         self.timedelta = timedelta
@@ -52,8 +52,8 @@ class HoloData(object):
                                                                'gain': 10}), \
                                          ('channel_info', {'1': 'test', \
                                                                '2': 'blah'}),\
-                                         ('yunits',\
-                                        'Length Deviation [$m/\sqrt{\mathrm{Hz}}$]'),\
+                                         ('yunits',
+                                        'Length Deviation [$m/\sqrt{\mathrm{Hz}}$]'),
                                          ('xunits', 'Frequency [MHz]'), \
                                          ('NFFT', self.NFFT)])
 
@@ -73,7 +73,7 @@ class HoloData(object):
         
         noise = np.random.normal(0, 1/2**.5, len(f)) + \
             1j*np.random.normal(0, 1/2**.5, len(f))
-        spec = abs(holo_PSD(f) + self.noise_level * noise / int_time)**.5
+        spec = holo_PSD(f) + self.noise_level * noise / int_time
         return spec
 
     def get_time(self):

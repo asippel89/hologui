@@ -12,6 +12,7 @@ import mplpanel
 import connsettingstoolbar as connTB
 import loggerctrl
 import csdviewtoolbar
+import simulationsettings as simsett
 from wx.lib.pubsub import Publisher as pub
 
 class CSDFrame(wx.Frame):
@@ -37,6 +38,12 @@ class CSDFrame(wx.Frame):
         self.logger = loggerctrl.LoggerCtrl(self, size=wx.Size(800, 100), \
                                      style=wx.TE_MULTILINE|wx.TE_READONLY)
         self.conntoolbar = self.connsettpresenter.tb
+        self.simulationsettingstb = \
+            simsett.SimulationToolbar(self, -1, wx.DefaultPosition,
+                                      wx.DefaultSize, 
+                                      agwStyle=aui.AUI_TB_OVERFLOW|\
+                                          aui.AUI_TB_TEXT|\
+                                          aui.AUI_TB_HORZ_TEXT)
         self.csdviewtoolbar = csdviewtoolbar.Toolbar(self, -1, wx.DefaultPosition,\
                                                      wx.DefaultSize, \
                                                      agwStyle=aui.AUI_TB_OVERFLOW|\
@@ -57,6 +64,10 @@ class CSDFrame(wx.Frame):
         self._mgr.AddPane(self.csdviewtoolbar, aui.AuiPaneInfo().\
                               Caption('CSD View Options').\
                               ToolbarPane().Bottom())
+        self._mgr.AddPane(self.simulationsettingstb, 
+                          aui.AuiPaneInfo().Name('simsettTB').
+                          Caption('Simulation Settings').
+                          ToolbarPane().Bottom())
 
         # Populate with a couple initial plot panels
         self.create_plot_tab('RMS')
