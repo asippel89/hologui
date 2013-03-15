@@ -61,7 +61,7 @@ class TimeData(object):
             for key in self.running_avg.keys():
                 self.running_avg[key] = (current_data_dict[key] + 
                     self.num_coadded*self.running_avg[key])/new_num_coadded
-                self.num_coadded = new_num_coadded
+            self.num_coadded = new_num_coadded
         return self.running_avg
 
     def get_current_data(self):
@@ -85,15 +85,19 @@ class TimeData(object):
     def get_current_running_avg(self):
         return self.running_avg
 
+    def get_current_phase_data(self):
+        return self.data_object_list[-1].get_phase_data()
+
 class StreamDataTest(object):
     
     def __init__(self, report_data_method, update_int=.5, noise_level='Default', \
-                     NFFT='Default', fsamp='Default', int_time='Default'):
+                     NFFT='Default', fsamp='Default'):
         self.keep_going = True
         self.update_int = update_int
         self.options_dict = dict([('noise_level', noise_level), ('NFFT', NFFT), \
-                                     ('fsamp', fsamp), ('int_time', int_time)])
-        self.supply_args = False
+                                     ('fsamp', fsamp)])
+        print 'Reported to streamDataTest:', self.options_dict
+        self.supply_args = True
         self.time_start = time.time()
         self.report_data = report_data_method
         self.frame_num = 0
@@ -114,17 +118,13 @@ class StreamDataTest(object):
             delta = now - self.time_start
             # May need to divide num_coadded by 2 because of Welch overlap
             if self.supply_args:
-                data = sgen.HoloData(delta, **self.options_dict)
+                data = sgen.HoloData(delta, self.options_dict)
             else:
                 data = sgen.HoloData(delta)
             self.report_data(data)
             self.frame_num += 1
             time.sleep(self.update_int)
 
-    def run_stream_in_background(self):
-        thread = threading.Thread(target=self._run_stream)
-        thread.start()
-            
 class ExampleData(object):
 
     def __init__(self):

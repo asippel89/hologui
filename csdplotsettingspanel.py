@@ -23,7 +23,7 @@ class CSDPlotSettingsPanel(wx.Panel):
     def create_items(self):
         self.viewoptionsLabel = wx.StaticText(self, label="View which X-Spectra?")
         self.viewoptionsCheckLB = wx.CheckListBox(self, -1, wx.DefaultPosition,
-                                                  (70,235), 
+                                                  (80,235), 
                                                   self.View_Options)
         self.titleLabel = wx.StaticText(self, label="Title:")
         self.titleCtrl = wx.TextCtrl(self, value="")
@@ -31,11 +31,13 @@ class CSDPlotSettingsPanel(wx.Panel):
         self.gridCheckBox.SetValue(False)
         self.legendCheckBox = wx.CheckBox(self, label="Show Legend?")
         self.legendCheckBox.SetValue(True)
+        self.showphaseCheckbox = wx.CheckBox(self, label="Show Phase Plot?")
+        self.showphaseCheckbox.SetValue(False)
         self.updateButton = wx.Button(self, label="Update")
                                                   
     def do_layout(self):
         # A GridSizer will contain the controls:
-        gridSizer = wx.FlexGridSizer(rows=8, cols=2, vgap=10, hgap=10)
+        gridSizer = wx.FlexGridSizer(rows=9, cols=2, vgap=10, hgap=10)
 
         # Prepare some reusable arguments for calling sizer.Add():
         expandOption = dict(flag=wx.EXPAND)
@@ -53,6 +55,8 @@ class CSDPlotSettingsPanel(wx.Panel):
                  (self.titleLabel, expandOption),
                  emptySpace,
                  (self.titleCtrl, expandOption),
+                 emptySpace,
+                 (self.showphaseCheckbox, expandOption),
                  emptySpace,
                  (self.gridCheckBox, expandOption),
                  emptySpace,
@@ -95,6 +99,7 @@ class CSDPlotSettingsPanel(wx.Panel):
         report_dict['title'] = self.titleCtrl.GetValue()
         report_dict['grid'] = self.gridCheckBox.IsChecked()
         report_dict['legend'] = self.legendCheckBox.IsChecked()
+        report_dict['phase'] = self.showphaseCheckbox.IsChecked()
         return report_dict
 
 class CSDSettPresenter(object):

@@ -29,7 +29,7 @@ class SimulateSettingsFrame(wx.Frame):
                                            label='Update Interval (sec)')
         self.update_intCtrl = wx.TextCtrl(self, value='')
         self.fsampLabel = wx.StaticText(self, 
-                                        label='Sampling Frequendy (MegaSamples/sec)')
+                                        label='Sampling Frequency (MegaSamples/sec)')
         self.fsampCtrl = wx.TextCtrl(self, value='')
         self.NFFTLabel = wx.StaticText(self, label='NFFT')
         self.NFFTCtrl = wx.TextCtrl(self, value='')
@@ -94,7 +94,7 @@ class SimulateSettingsFrame(wx.Frame):
         self.options_dict['update_int'] = float(self.update_intCtrl.GetValue())
         self.options_dict['fsamp'] = int(self.fsampCtrl.GetValue())
         self.options_dict['NFFT'] = int(self.NFFTCtrl.GetValue())
-        self.options_dict['noise_level'] = self.noise_levelCtrl.GetValue()
+        self.options_dict['noise_level'] = str(self.noise_levelCtrl.GetValue())
         return self.options_dict 
 
     def set_form_values(self, value_dict):
@@ -126,22 +126,39 @@ class SimulationToolbar(aui.AuiToolBar):
         self.AddControl(self.viewsettingsButton)
         # Bind Buttons
         self.viewsettingsButton.Bind(wx.EVT_BUTTON, self.on_view_button)
-        self.simulateButton.Bind(wx.EVT_BUTTON, self.on_simulate_start)
+        self.simulateButton.Bind(wx.EVT_BUTTON, self.on_simulate_button)
         self.popupframe.closeButton.Bind(wx.EVT_BUTTON, self.on_frame_close)
         self.popupframe.savesettingsButton.Bind(wx.EVT_BUTTON, 
                                                 self.update_options_dict)
         # Bind Frame Close
         self.popupframe.Bind(wx.EVT_CLOSE, self.on_frame_close)
+        # Subscribe to Notifications
+        pub.subscribe(self.on_notification, 'simulation_settings')
+
+    def on_notification(self, msg):
+        if 'simulation_stopped' in msg.topic:
+            self.simulateButton.SetLabel('Start Simulation')
+        if 'simulation_started' in msg.topic:
+            self.simulateButton.Enable()
+        else:
+            pass
 
     def update_options_dict(self, event):
         new_dict = self.popupframe.report_field_values()
         self.options_dict = new_dict
 
-    def on_simulate_start(self, event):
-        if self.options_dict is None:
-            pub.sendMessage('controller.simulate', self.default_options_dict)
-        else:
-            pub.sendMessage('controller.simulate', self.options_dict)
+    def on_simulate_button(self, event):
+        label = self.simulateButton.GetLabel()
+        if label == 'Start Simulation':
+            if self.options_dict is None:
+                pub.sendMessage('controller.simulate', self.default_options_dict)
+            else:
+                pub.sendMessage('controller.simulate', self.options_dict)
+            self.simulateButton.Disable()
+            self.simulateButton.SetLabel('Stop Simulation')
+            
+        if label == 'Stop Simulation':
+            pub.sendMessage('controller.simulate_stop', 'blah')
 
     def on_view_button(self, event):
         self.viewsettingsButton.Disable()

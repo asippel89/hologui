@@ -52,8 +52,12 @@ class MainController(object):
             pub.sendMessage('connsett', 'disconnected')
             self.stream.keep_going = False
         if msg.topic == ('controller', 'simulate'):
-            print msg.data
-            self.start_test_in_thread(msg.data)
+            print 'Reported to controller:', msg.data
+            self.start_simulation(msg.data)
+        if msg.topic == ('controller', 'simulate_stop'):
+            pub.sendMessage('logger', '\tSimulation Stopped')
+            pub.sendMessage('simulation_settings.simulation_stopped', 'blah')
+            self.stream.keep_going = False
         if 'newdata' in msg.topic:
             if msg.data is None:
                 pass
@@ -66,9 +70,10 @@ class MainController(object):
         timestamp = self.model.get_current_time()
         run_info = self.model.get_current_run_info()
         data_dict = self.model.get_current_data()
+        phase_dict = self.model.get_current_phase_data()
         running_avg = self.model.get_current_running_avg()
         pub.sendMessage('run_info', run_info)
-        time_data = [timestamp, data_dict]
+        time_data = [timestamp, data_dict, phase_dict]
         pub.sendMessage('data_dict', time_data)
         available_channels = self.model.get_current_data().keys()
         pub.sendMessage('available_channels', available_channels)
@@ -81,11 +86,13 @@ class MainController(object):
     def report_data_method(self, data):
         wx.PostEvent(self.frame, ResultEvent(['newdata', data]))
 
-    def start_test_in_thread(self, options_dict):
+    def start_simulation(self, options_dict):
         def innerrun(**kwargs):
             time.sleep(2)
             logmsg = '\tStarted Simulation Successfully!'
             global_report_data(self.frame, 'logger', logmsg)
+            global_report_data(self.frame, 'simulation_settings.simulation_started', 
+                               'blah')
             self.stream = tds.StreamDataTest(self.report_data_method, **kwargs)
             self.stream._run_stream()
         thread = threading.Thread(target=innerrun, kwargs=options_dict)

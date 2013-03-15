@@ -24,9 +24,9 @@ class MPLPanel(wx.Panel):
         # Setup the canvas
         self.dpi = 100
         self.fig = Figure((3.0, 2.0), dpi=self.dpi)
-        self.ax = None
+        self.ax1 = None
+        self.ax2 = None
         self.canvas = FigCanvas(self, -1, self.fig)
-        self.ax_dict = None
         self.data = []
 
         # Setup the toolbar/statustextctrl
@@ -68,6 +68,7 @@ class CSDPlotPresenter(object):
         self.canvas = MPLPanel(self.frame)
         self.current_available_channels = []
         self.csd_data = {}
+        self.phase_data = {}
         self.subscribed_channels = []
         self.plot_dict = {}
         self.run_info = None
@@ -75,9 +76,10 @@ class CSDPlotPresenter(object):
         self.x_label = None
         self.f_samp = None
         self.NFFT = None
-        self.title = None
+        self.title = ''
         self.grid = None
         self.legend = None
+        self.showphase = False
         self.update_state = True
         # Create settings toolbar presenter
         self.settingspresenter = csdsett.CSDSettPresenter(self.frame)
@@ -129,42 +131,84 @@ class CSDPlotPresenter(object):
 
     def process_data(self, event):
         data_dict = event.data[1]
+        phase_dict = event.data[2]
         if data_dict is None:
             pass
         else:
             for key in data_dict.keys():
                 if str(key) in self.subscribed_channels:
                     self.csd_data[str(key)] = data_dict[key]
+                    self.phase_data[str(key)] = phase_dict[key]
         self.plot_update()
 
     def plot_update(self):
-        if self.canvas.ax is None:
-            self.canvas.ax = self.canvas.fig.add_subplot(111)
-        else:
-            self.canvas.ax.clear()
-            for channel in self.csd_data.keys():
-                # Need to change this once actual data is coming in!!
-                x_data_len = len(self.csd_data[channel])
-                f_nyquist = self.f_samp/2
-                
-                x_data = np.linspace(1, f_nyquist, x_data_len)
-                self.plot_dict[channel] = \
-                    self.canvas.ax.plot(x_data, 
-                                        self.csd_data[channel], '-', label=channel
-                                        )
-            if len(self.csd_data) > 0:
-                if self.legend is not None:
+        if not self.showphase:
+            if self.canvas.ax1 is None:
+                self.canvas.ax1 = self.canvas.fig.add_subplot(111)
+            else:
+                self.canvas.ax1.clear()
+                for channel in self.csd_data.keys():
+                    # Need to change this once actual data is coming in!!
+                    x_data_len = len(self.csd_data[channel])
+                    # divide f_nyquist by 10**6 to make units correct
+                    f_nyquist = self.f_samp/2
+                    x_data = np.linspace(1, f_nyquist, x_data_len)
+                    self.plot_dict[channel] = \
+                        self.canvas.ax1.plot(x_data, 
+                                             abs(self.csd_data[channel])**.5, 
+                                             '-', label=channel
+                                             )
+                if len(self.csd_data) > 0:
                     if self.legend:
-                        self.canvas.ax.legend(loc='upper right')
-                if self.grid is not None:
-                    self.canvas.ax.grid(self.grid, which='both')
-                if self.title is not None:
-                    self.canvas.ax.set_title(self.title)
-                self.canvas.ax.set_ylabel(self.y_label)
-                self.canvas.ax.set_xlabel(self.x_label)
-            self.canvas.ax.set_yscale('log')
-            if self.update_state:
-                self.canvas.canvas.draw()
+                        self.canvas.ax1.legend(loc='upper right')
+                    if self.grid is not None:
+                        self.canvas.ax1.grid(self.grid, which='both')
+                    self.canvas.ax1.set_title(self.title)
+                    self.canvas.ax1.set_ylabel(self.y_label)
+                    self.canvas.ax1.set_xlabel(self.x_label)
+                    self.canvas.ax1.set_yscale('log')
+                if self.update_state:
+                    self.canvas.canvas.draw()
+        elif self.showphase:
+            if self.canvas.ax1 is None:
+                self.canvas.ax1 = self.canvas.fig.add_subplot(211)
+            if self.canvas.ax2 is None:
+                self.canvas.ax2 = self.canvas.fig.add_subplot(212)
+            else:
+                self.canvas.ax1.clear()
+                self.canvas.ax2.clear()
+                for channel in self.csd_data.keys():
+                    # Need to change this once actual data is coming in!!
+                    x_data_len = len(self.csd_data[channel])
+                    # divide f_nyquist by 10**6 to make units correct
+                    f_nyquist = self.f_samp/2
+                    x_data = np.linspace(1, f_nyquist, x_data_len)
+                    self.plot_dict[channel] = \
+                        [self.canvas.ax1.plot(x_data, 
+                                             abs(self.csd_data[channel])**.5,
+                                             '-', label=channel
+                                             ),
+                         self.canvas.ax2.plot(x_data, 
+                                              self.phase_data[channel], 
+                                              '-', label=channel
+                                              )
+                         ]
+                if len(self.csd_data) > 0:
+                    if self.legend:
+                        self.canvas.ax1.legend(loc='upper right')
+                        self.canvas.ax2.legend(loc='upper right')
+                    if self.grid is not None:
+                        self.canvas.ax1.grid(self.grid, which='both')
+                        self.canvas.ax2.grid(self.grid, which='both')
+                    self.canvas.ax1.set_title(self.title)
+                    self.canvas.ax1.set_ylabel(self.y_label)
+                    self.canvas.ax2.set_ylabel('Phase (Deg)')
+                    self.canvas.ax2.set_xlabel(self.x_label)
+                    self.canvas.ax1.set_yscale('log')
+                    self.canvas.ax2.set_ylim((-180, 180))
+                    self.canvas.fig.subplots_adjust(hspace=.5)
+                if self.update_state:
+                    self.canvas.canvas.draw()
 
     def update_plot_settings(self, report_dict):
         # Need to clear data_dict corresponding to subscribed channels
@@ -172,6 +216,14 @@ class CSDPlotPresenter(object):
         self.title = report_dict['title']
         self.grid = report_dict['grid']
         self.legend = report_dict['legend']
+        # check if showphase value has changed:
+        if report_dict['phase']: 
+            self.canvas.fig.axes[0].change_geometry(2,1,1)
+        if not report_dict['phase']:
+            if len(self.canvas.fig.axes) > 1:
+                #self.canvas.fig.axes[1].clear()
+            self.canvas.fig.axes[0].change_geometry(1,1,1)
+        self.showphase = report_dict['phase']
         pub.sendMessage('logger', 'Plot settings updated')        
 
     def on_update_button(self, event):
@@ -280,7 +332,7 @@ class RMSPlotPresenter(object):
     def on_click(self, event):
         if event.xdata is not None:
             self.t1_sel = event.xdata
-            self.canvas.ax.axvline(x=self.t1_sel, color='r')
+            self.canvas.ax1.axvline(x=self.t1_sel, color='r')
             self.canvas.canvas.draw()
             # print 'Press: button=%d, x=%d, y=%d, xdata=%f, ydata=%f'\
             #     %(event.button, event.x, event.y, event.xdata, event.ydata)
@@ -311,34 +363,34 @@ class RMSPlotPresenter(object):
         self.plot_update()
 
     def plot_update(self):
-        if self.canvas.ax is None:
-            self.canvas.ax = self.canvas.fig.add_subplot(111)
+        if self.canvas.ax1 is None:
+            self.canvas.ax1 = self.canvas.fig.add_subplot(111)
         else:
-            self.canvas.ax.clear()
+            self.canvas.ax1.clear()
             for channel in self.rms_data.keys():
                 self.plot_dict[channel] = \
-                    self.canvas.ax.plot_date(self.times_data[channel], \
+                    self.canvas.ax1.plot_date(self.times_data[channel], \
                                             self.rms_data[channel], '-',\
                                                  label=str(channel))
             # Plot Settings Logic
             if len(self.times_data) > 0:
                 if self.legend is not None:
                     if self.legend:
-                        self.canvas.ax.legend(loc='upper right')
+                        self.canvas.ax1.legend(loc='upper right')
                 if self.grid is not None:
-                    self.canvas.ax.grid(self.grid, which='both')
+                    self.canvas.ax1.grid(self.grid, which='both')
                 if self.title is not None:
-                    self.canvas.ax.set_title(self.title)
+                    self.canvas.ax1.set_title(self.title)
                 if self.dynamic_x is not None:
                     if self.x_min is None:
                         self.set_x_lim()
                     if self.dynamic_x is False:
                         if self.current_x_max > self.x_max:
                             self.x_max += dt.timedelta(seconds=60)
-                        self.canvas.ax.set_xlim([self.x_min, self.x_max])
-            self.canvas.ax.set_ylabel(self.y_label)
+                        self.canvas.ax1.set_xlim([self.x_min, self.x_max])
+            self.canvas.ax1.set_ylabel(self.y_label)
             self.canvas.fig.autofmt_xdate()
-            self.canvas.ax.set_yscale('log')
+            self.canvas.ax1.set_yscale('log')
             if self.update_state:
                 self.canvas.canvas.draw()
 
