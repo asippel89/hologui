@@ -68,20 +68,24 @@ class HoloData(object):
             if self.tuple_list[i][0] == self.tuple_list[i][1]:
                 # Populate data_dict and phase_dict
                 self.data_dict[self.tuple_list[i]], \
-                    self.phase_dict[self.tuple_list[i]] = self.gen_spec(1)
+                    self.phase_dict[self.tuple_list[i]] = self.gen_spec(1, 'psd')
             else:
                 if self.timedelta < 1:
                     self.data_dict[self.tuple_list[i]], \
-                        self.phase_dict[self.tuple_list[i]] = self.gen_spec(1)
+                        self.phase_dict[self.tuple_list[i]] = self.gen_spec(1, 'csd')
                 else:
                     self.data_dict[self.tuple_list[i]], \
-                        self.phase_dict[self.tuple_list[i]] = self.gen_spec(self.timedelta)
+                        self.phase_dict[self.tuple_list[i]] = self.gen_spec(.25, 'csd')
 
-    def gen_spec(self, int_time):
+    def gen_spec(self, int_time, spec_type):
         # Define frequency component for arrays
         f = np.linspace(1, self.max_freq, self.num_points)
-        noise = np.random.normal(0, 1/2**.5, len(f)) + \
-            1j*np.random.normal(0, 1/2**.5, len(f))
+        if 'csd' in spec_type:
+            noise = np.random.normal(0, 1/2**.5, len(f)) + \
+                1j*np.random.normal(0, 1/2**.5, len(f))
+        if 'psd' in spec_type:
+            noise = abs(np.random.normal(0, 1/2**.5, len(f)) + \
+                1j*np.random.normal(0, 1/2**.5, len(f)))
         spec = holo_PSD(f) + self.noise_level * noise / int_time
         phase = np.angle(spec, deg=True) * 180 / np.pi
         return spec, phase

@@ -75,6 +75,8 @@ class MainController(object):
         pub.sendMessage('run_info', run_info)
         time_data = [timestamp, data_dict, phase_dict]
         pub.sendMessage('data_dict', time_data)
+        avg_data = [timestamp, running_avg, phase_dict]
+        pub.sendMessage('avg_data', avg_data)
         available_channels = self.model.get_current_data().keys()
         pub.sendMessage('available_channels', available_channels)
 
@@ -88,7 +90,7 @@ class MainController(object):
 
     def start_simulation(self, options_dict):
         def innerrun(**kwargs):
-            time.sleep(2)
+            time.sleep(1)
             logmsg = '\tStarted Simulation Successfully!'
             global_report_data(self.frame, 'logger', logmsg)
             global_report_data(self.frame, 'simulation_settings.simulation_started', 

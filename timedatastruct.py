@@ -51,16 +51,18 @@ class TimeData(object):
             #Do other stuff here
 
     def calculate_running_avg(self):
-        if self.num_coadded is None:
-            self.num_coadded = self.data_object_list[-1].get_num_coadded()
-        if self.running_avg is None:
-            self.running_avg = self.data_object_list[-1].get_data()
-        else:
-            new_num_coadded = self.data_object_list[-1].get_num_coadded()
-            current_data_dict = self.data_object_list[-1].get_data()
-            for key in self.running_avg.keys():
-                self.running_avg[key] = (current_data_dict[key] + 
-                    self.num_coadded*self.running_avg[key])/new_num_coadded
+        with self.mutex:
+            if self.num_coadded is None:
+                self.num_coadded = self.data_object_list[-1].get_num_coadded()
+                new_num_coadded = 0
+            if self.running_avg is None:
+                self.running_avg = self.data_object_list[-1].get_data()
+            else:
+                new_num_coadded = self.data_object_list[-1].get_num_coadded()
+                current_data_dict = self.data_object_list[-1].get_data()
+                for key in self.running_avg.keys():
+                    self.running_avg[key] = (current_data_dict[key] + 
+                                             self.num_coadded*self.running_avg[key])/new_num_coadded
             self.num_coadded = new_num_coadded
         return self.running_avg
 

@@ -9,6 +9,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigCanvas, \
     NavigationToolbar2WxAgg as NavigationToolbar
+import matplotlib.cm as cm
 import matplotlib.dates as mdates
 import datetime as dt
 import csdplotsettingspanel as csdsett
@@ -86,7 +87,7 @@ class CSDPlotPresenter(object):
         self.settings = self.settingspresenter.panel
         # Bind update button of the settings Panel
         pub.subscribe(self.update_channels, 'available_channels')
-        pub.subscribe(self.process_data, 'data_dict')
+        pub.subscribe(self.process_data, 'avg_data')
         pub.subscribe(self.process_run_info, 'run_info')
         # Bind mouse events to mplcanvas
         # Note that event is a MplEvent
@@ -135,6 +136,8 @@ class CSDPlotPresenter(object):
         if data_dict is None:
             pass
         else:
+            self.csd_data.clear()
+            self.phase_data.clear()
             for key in data_dict.keys():
                 if str(key) in self.subscribed_channels:
                     self.csd_data[str(key)] = data_dict[key]
@@ -147,10 +150,9 @@ class CSDPlotPresenter(object):
                 self.canvas.ax1 = self.canvas.fig.add_subplot(111)
             else:
                 self.canvas.ax1.clear()
-                for channel in self.csd_data.keys():
+                for i, channel in enumerate(self.csd_data.keys()):
                     # Need to change this once actual data is coming in!!
                     x_data_len = len(self.csd_data[channel])
-                    # divide f_nyquist by 10**6 to make units correct
                     f_nyquist = self.f_samp/2
                     x_data = np.linspace(1, f_nyquist, x_data_len)
                     self.plot_dict[channel] = \
@@ -196,7 +198,6 @@ class CSDPlotPresenter(object):
                 if len(self.csd_data) > 0:
                     if self.legend:
                         self.canvas.ax1.legend(loc='upper right')
-                        self.canvas.ax2.legend(loc='upper right')
                     if self.grid is not None:
                         self.canvas.ax1.grid(self.grid, which='both')
                         self.canvas.ax2.grid(self.grid, which='both')
@@ -206,12 +207,13 @@ class CSDPlotPresenter(object):
                     self.canvas.ax2.set_xlabel(self.x_label)
                     self.canvas.ax1.set_yscale('log')
                     self.canvas.ax2.set_ylim((-180, 180))
-                    self.canvas.fig.subplots_adjust(hspace=.5)
+                    y2tick_val = [-180., -135., -90., -45., 0., 45., 90., 135., 180.]
+                    self.canvas.ax2.set_yticks(y2tick_val)
+                    self.canvas.fig.subplots_adjust(hspace=.3)
                 if self.update_state:
                     self.canvas.canvas.draw()
 
     def update_plot_settings(self, report_dict):
-        # Need to clear data_dict corresponding to subscribed channels
         self.subscribed_channels = report_dict['checked_view_options'].values()
         self.title = report_dict['title']
         self.grid = report_dict['grid']
@@ -221,8 +223,9 @@ class CSDPlotPresenter(object):
             self.canvas.fig.axes[0].change_geometry(2,1,1)
         if not report_dict['phase']:
             if len(self.canvas.fig.axes) > 1:
-                #self.canvas.fig.axes[1].clear()
-            self.canvas.fig.axes[0].change_geometry(1,1,1)
+                # Need to figure out how clear phase plot
+                self.canvas.fig.delaxes(self.canvas.fig.axes[1])
+                self.canvas.fig.axes[0].change_geometry(1,1,1)
         self.showphase = report_dict['phase']
         pub.sendMessage('logger', 'Plot settings updated')        
 
@@ -318,8 +321,6 @@ class RMSPlotPresenter(object):
     def on_release(self, event):
         if event.xdata is not None:
             self.t2_sel = event.xdata
-            # print 'Release: button=%d, x=%d, y=%d, xdata=%f, ydata=%f'\
-            #     %(event.button, event.x, event.y, event.xdata, event.ydata)
             t1fmt = dt.datetime.strftime(mdates.num2date(self.t1_sel),\
                                              '%d-%b-%Y-%H:%M:%S')
             t2fmt = dt.datetime.strftime(mdates.num2date(self.t2_sel),\
@@ -334,9 +335,6 @@ class RMSPlotPresenter(object):
             self.t1_sel = event.xdata
             self.canvas.ax1.axvline(x=self.t1_sel, color='r')
             self.canvas.canvas.draw()
-            # print 'Press: button=%d, x=%d, y=%d, xdata=%f, ydata=%f'\
-            #     %(event.button, event.x, event.y, event.xdata, event.ydata)
-
     
     def process_run_info(self, event):
         """Method to set label values to be shown in plot based on run_info"""
@@ -358,8 +356,8 @@ class RMSPlotPresenter(object):
         else:
             for key in data_dict.keys():
                 if str(key) in self.subscribed_channels:
-                    self.rms_data[key].append(np.sum(data_dict[key]))
-                    self.times_data[key].append(timestamp)
+                    self.rms_data[str(key)].append(np.sum(abs(data_dict[key]))**.5)
+                    self.times_data[str(key)].append(timestamp)
         self.plot_update()
 
     def plot_update(self):
@@ -369,8 +367,8 @@ class RMSPlotPresenter(object):
             self.canvas.ax1.clear()
             for channel in self.rms_data.keys():
                 self.plot_dict[channel] = \
-                    self.canvas.ax1.plot_date(self.times_data[channel], \
-                                            self.rms_data[channel], '-',\
+                    self.canvas.ax1.plot_date(self.times_data[channel], 
+                                            self.rms_data[channel], '-',
                                                  label=str(channel))
             # Plot Settings Logic
             if len(self.times_data) > 0:
@@ -412,6 +410,13 @@ class RMSPlotPresenter(object):
 
     def update_plot_settings(self, report_dict):
         self.subscribed_channels = report_dict['checked_view_options'].values()
+        #check for different subscribed channels
+        diff_keys = set(self.rms_data.keys()) - \
+            set(self.subscribed_channels)
+        if (len(diff_keys) > 0) & (len(self.rms_data) > len(self.subscribed_channels)):
+            for key in diff_keys:
+                del(self.rms_data[key])
+                del(self.times_data[key])
         self.title = report_dict['title']
         self.grid = report_dict['grid']
         self.legend = report_dict['legend']

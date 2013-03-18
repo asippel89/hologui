@@ -9,6 +9,9 @@ try:
 except ImportError: # if it's not there locally, try the wxPython lib.
     import wx.lib.agw.aui as aui
 
+setup_dict = {'fields': {'update_int': {'type': 'textCtrl', 'value': 0.5, 'label': 'Update Interval (sec)'}, 'fsamp': {'type': 'textCtrl', 'value': 100, 'label': 'Sampling Frequency (MegaSamples/sec)'}, 'noise_level': {'default': 'P_2kW_var_1s', 'choices': ['P_1W_var_1s', 'P_2kW_var_1s'], 'type': 'comboBox', 'label': 'Noise Level'}, 'NFFT': {'type': 'textCtrl', 'value': 4096, 'label': 'NFFT'}}, 'title': 'Simulation Settings'}
+
+
 class Form(wx.Frame):
 
     def __init__(self, setup_dict, parent, *args, **kwargs):
@@ -66,59 +69,46 @@ class Form(wx.Frame):
     def set_values(self):
         pass
 
-fields_dict = {}
+class Toolbar(aui.AuiToolBar):
 
-fields_dict['update_int'] = {'type':'textCtrl', 'label':'Update Interval (sec)',
-                             'value':.5
-                             }
-fields_dict['fsamp'] = {'type':'textCtrl', 
-                        'label':'Sampling Frequency (MegaSamples/sec)',
-                        'value':100
-                        }
-fields_dict['NFFT'] = {'type':'textCtrl', 'label':'NFFT', 'value':2**12
-                       }
-noise_level_list = ['P_1W_var_1s', 
-                    'P_2kW_var_1s'
-                    ]
-fields_dict['noise_level'] = {'type':'comboBox', 
-                              'label':'Noise Level', 
-                              'choices': noise_level_list, 
-                              'default': noise_level_list[1]
-                              }
+    def __init__(self, *args, **kwargs):
+        super(Toolbar, self).__init__(*args, **kwargs)
+        self.simulateButton = wx.Button(self, label='Start Simulation')
+        self.viewsettingsButton = wx.Button(self, label='Simulation Settings')
+        self.popupframe = Form(setup_dict, self)
+        self.popupframe.SetSize(self.popupframe.GetBestSize())
+        # Add GUI Items to Toolbar
+        self.AddControl(self.simulateButton)
+        self.AddControl(self.viewsettingsButton)
+        # Bind Buttons
+        self.viewsettingsButton.Bind(wx.EVT_BUTTON, self.on_view_button)
 
-setup_dict = {}
-
-setup_dict['title'] = 'Simulation Settings'
-setup_dict['fields'] = fields_dict
+    def on_view_button(self, event):
+        self.viewsettingsButton.Disable()
+        self.popupframe.Show(True)
 
 if __name__ == '__main__':
-
     class MyFrame(wx.Frame):
 
         def __init__(self, *args, **kwargs):
             super(MyFrame, self).__init__(*args, **kwargs)
             self._mgr = aui.AuiManager(self)
-            self.testFrame = Form(setup_dict, None)
-            self.testFrame.SetSize(self.testFrame.GetBestSize())
             self.textCtrl = wx.TextCtrl(self, size=wx.Size(400, 100), 
                                        style=wx.TE_MULTILINE)
-            self.testButton = wx.Button(self, label='Test')
-            self.testButton.Bind(wx.EVT_BUTTON, self.on_test_button)
-            self.testFrame.closeButton.Bind(wx.EVT_BUTTON, self.on_frame_close)
+            self.toolbar = Toolbar(self, -1, wx.DefaultPosition, 
+                                             wx.DefaultSize, 
+                                             agwStyle=aui.AUI_TB_OVERFLOW |
+                                             aui.AUI_TB_TEXT |
+                                             aui.AUI_TB_HORZ_TEXT)
             self._mgr.AddPane(self.textCtrl, aui.AuiPaneInfo().Name('textctrl').
                               Caption('Text Control').
                               Center().MaximizeButton())
-            self._mgr.AddPane(self.testButton, aui.AuiPaneInfo().Name('button').
-                              Caption('Button').
-                              Bottom())
+            self._mgr.AddPane(self.toolbar, aui.AuiPaneInfo().Name('tb').
+                              Caption('ToolBar').
+                              ToolbarPane().Bottom())
             self._mgr.Update()
-        
-        def on_test_button(self, event):
-            self.testFrame.Show(True)
 
-        def on_frame_close(self, event):
-            self.testFrame.Show(False)
-    
     app = wx.App(False)
-    frame = MyFrame(None, title='FormGenTest', size=wx.Size(400,400))
+    frame = MyFrame(None, title="Form Generator Test", size=wx.Size(400, 400))
+    frame.Show(True)
     app.MainLoop()
