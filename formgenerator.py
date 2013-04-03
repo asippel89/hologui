@@ -9,7 +9,6 @@ try:
 except ImportError: # if it's not there locally, try the wxPython lib.
     import wx.lib.agw.aui as aui
 
-setup_dict = {'fields': {'update_int': {'type': 'textCtrl', 'value': 0.5, 'label': 'Update Interval (sec)'}, 'fsamp': {'type': 'textCtrl', 'value': 100, 'label': 'Sampling Frequency (MegaSamples/sec)'}, 'noise_level': {'default': 'P_2kW_var_1s', 'choices': ['P_1W_var_1s', 'P_2kW_var_1s'], 'type': 'comboBox', 'label': 'Noise Level'}, 'NFFT': {'type': 'textCtrl', 'value': 4096, 'label': 'NFFT'}}, 'title': 'Simulation Settings'}
 
 
 class Form(wx.Frame):
@@ -32,9 +31,12 @@ class Form(wx.Frame):
                 self.field_gui_dict[field] = {'label':label, 'ctrl':ctrl}
             if value_dict['type'] == 'comboBox':
                 ctrl = wx.ComboBox(self, choices=value_dict['choices'],
-                                   style=wx.CB_DROPDOWN|wx.CB_READONLY,
+                                   style=wx.CB_DROPDOWN,
                                    value=str(value_dict['default']))
                 self.field_gui_dict[field] = {'label':label, 'ctrl':ctrl}
+            if value_dict['type'] == 'checkBox':
+                ctrl = wx.CheckBox(self, label=str(value_dict['label']))
+                self.field_gui_dict[field] = {'label':'', 'ctrl':ctrl}
         self.savesettingsButton = wx.Button(self, label='Save Settings')
         self.closeButton = wx.Button(self, label='Close Window')
 
@@ -88,6 +90,12 @@ class Toolbar(aui.AuiToolBar):
         self.popupframe.Show(True)
 
 if __name__ == '__main__':
+    setup_dict = {'fields': {'update_int': {'type': 'textCtrl', 'value': 0.5, 'label': 'Update Interval (sec)'}, 
+                             'fsamp': {'type': 'textCtrl', 'value': 100, 'label': 'Sampling Frequency (MegaSamples/sec)'}, 
+                             'noise_level': {'default': 'P_2kW_var_1s', 'choices': ['P_1W_var_1s', 'P_2kW_var_1s'], 'type': 'comboBox', 'label': 'Noise Level'}, 
+                             'NFFT': {'type': 'textCtrl', 'value': 4096, 'label': 'NFFT'}}, 'title': 'Simulation Settings'}
+
+
     class MyFrame(wx.Frame):
 
         def __init__(self, *args, **kwargs):

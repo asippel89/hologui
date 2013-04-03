@@ -7,6 +7,7 @@ import csdframe
 import timedatastruct as tds
 import time
 import threading
+import clienttest
 
 # Define notification event for thread completion
 EVT_RESULT_ID = wx.NewId()
@@ -71,18 +72,25 @@ class MainController(object):
         run_info = self.model.get_current_run_info()
         data_dict = self.model.get_current_data()
         phase_dict = self.model.get_current_phase_data()
-        running_avg = self.model.get_current_running_avg()
+        #running_avg = self.model.get_current_running_avg()
         pub.sendMessage('run_info', run_info)
         time_data = [timestamp, data_dict, phase_dict]
         pub.sendMessage('data_dict', time_data)
-        avg_data = [timestamp, running_avg, phase_dict]
-        pub.sendMessage('avg_data', avg_data)
+        #avg_data = [timestamp, running_avg, phase_dict]
+        #pub.sendMessage('avg_data', avg_data)
         available_channels = self.model.get_current_data().keys()
         pub.sendMessage('available_channels', available_channels)
 
     def start_connection(self, host, port):
-        msg = '\tConnection method not yet implemented'
+        msg = '\tConnection method not yet fully implemented'
         pub.sendMessage('logger', msg)
+        def innerrun():
+            time.sleep(1)
+            logmsg = '\tAttempting to start connection'
+            global_report_data(self.frame, 'logger', logmsg)
+            self.connection = clienttest.Client(self.report_data_method, str(host), str(port))
+        thread = threading.Thread(target=innerrun)
+        thread.start()
         return
 
     def report_data_method(self, data):

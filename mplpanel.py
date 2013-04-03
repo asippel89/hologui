@@ -71,7 +71,6 @@ class CSDPlotPresenter(object):
         self.csd_data = {}
         self.phase_data = {}
         self.subscribed_channels = []
-        self.plot_dict = {}
         self.run_info = None
         self.y_label = None
         self.x_label = None
@@ -87,7 +86,7 @@ class CSDPlotPresenter(object):
         self.settings = self.settingspresenter.panel
         # Bind update button of the settings Panel
         pub.subscribe(self.update_channels, 'available_channels')
-        pub.subscribe(self.process_data, 'avg_data')
+        pub.subscribe(self.process_data, 'data_dict')
         pub.subscribe(self.process_run_info, 'run_info')
         # Bind mouse events to mplcanvas
         # Note that event is a MplEvent
@@ -155,11 +154,10 @@ class CSDPlotPresenter(object):
                     x_data_len = len(self.csd_data[channel])
                     f_nyquist = self.f_samp/2
                     x_data = np.linspace(1, f_nyquist, x_data_len)
-                    self.plot_dict[channel] = \
-                        self.canvas.ax1.plot(x_data, 
-                                             abs(self.csd_data[channel])**.5, 
-                                             '-', label=channel
-                                             )
+                    self.canvas.ax1.plot(x_data, 
+                                         abs(self.csd_data[channel])**.5, 
+                                         '-', label=channel
+                                         )
                 if len(self.csd_data) > 0:
                     if self.legend:
                         self.canvas.ax1.legend(loc='upper right')
@@ -185,16 +183,14 @@ class CSDPlotPresenter(object):
                     # divide f_nyquist by 10**6 to make units correct
                     f_nyquist = self.f_samp/2
                     x_data = np.linspace(1, f_nyquist, x_data_len)
-                    self.plot_dict[channel] = \
-                        [self.canvas.ax1.plot(x_data, 
+                    self.canvas.ax1.plot(x_data, 
                                              abs(self.csd_data[channel])**.5,
                                              '-', label=channel
-                                             ),
-                         self.canvas.ax2.plot(x_data, 
-                                              self.phase_data[channel], 
-                                              '-', label=channel
-                                              )
-                         ]
+                                             )
+                    self.canvas.ax2.plot(x_data, 
+                                         self.phase_data[channel], 
+                                         '-', label=channel
+                                         )
                 if len(self.csd_data) > 0:
                     if self.legend:
                         self.canvas.ax1.legend(loc='upper right')
@@ -207,7 +203,7 @@ class CSDPlotPresenter(object):
                     self.canvas.ax2.set_xlabel(self.x_label)
                     self.canvas.ax1.set_yscale('log')
                     self.canvas.ax2.set_ylim((-180, 180))
-                    y2tick_val = [-180., -135., -90., -45., 0., 45., 90., 135., 180.]
+                    y2tick_val = [-180., -90., 0., 90., 180.]
                     self.canvas.ax2.set_yticks(y2tick_val)
                     self.canvas.fig.subplots_adjust(hspace=.3)
                 if self.update_state:
@@ -256,7 +252,6 @@ class RMSPlotPresenter(object):
         self.subscribed_channels = []
         self.rms_data = defaultdict(list)
         self.times_data = defaultdict(list)
-        self.plot_dict = {}
         # Attributes related to selecting a region of time
         self.t1_sel = None
         self.t2_sel = None
@@ -333,7 +328,7 @@ class RMSPlotPresenter(object):
     def on_click(self, event):
         if event.xdata is not None:
             self.t1_sel = event.xdata
-            self.canvas.ax1.axvline(x=self.t1_sel, color='r')
+            self.canvas.ax1.axvline(x=self.t1_sel, color='b', alpha=.5)
             self.canvas.canvas.draw()
     
     def process_run_info(self, event):
@@ -366,10 +361,11 @@ class RMSPlotPresenter(object):
         else:
             self.canvas.ax1.clear()
             for channel in self.rms_data.keys():
-                self.plot_dict[channel] = \
-                    self.canvas.ax1.plot_date(self.times_data[channel], 
-                                            self.rms_data[channel], '-',
-                                                 label=str(channel))
+                self.canvas.ax1.plot_date(self.times_data[channel], 
+                                          self.rms_data[channel], 
+                                          '-',
+                                          label=str(channel)
+                                          )
             # Plot Settings Logic
             if len(self.times_data) > 0:
                 if self.legend is not None:
@@ -459,4 +455,3 @@ if __name__ == '__main__':
                         size=wx.Size(1000, 700))
     frame.Show(True)
     app.MainLoop()
-
