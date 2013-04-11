@@ -38,20 +38,18 @@ class MPLPanel(wx.Panel):
             fw, fh = self.canvas.GetSizeTuple()
             self.toolbar.SetSize(wx.Size(fw, th))
         self.toolbar.dynamic_update()
+        self.toolbar.AddSeparator()
         self.testButton = wx.Button(self.toolbar, label='Pause')
         self.toolbar.AddControl(self.testButton)
-        self.toolbar.AddSeparator()
-        self.statusctrl = wx.StaticText(self.toolbar, style=wx.TE_READONLY, \
-                                          size=wx.Size(300,25))
+        self.statusctrl = wx.StaticText(self.toolbar, style=wx.TE_READONLY, size=wx.Size(300,25))
         self.toolbar.AddControl(self.statusctrl)
-        
-        # Do the layout
         panelvbox = wx.BoxSizer(wx.VERTICAL)
         panelvbox.Add(self.canvas, 1, flag=wx.EXPAND|wx.GROW|wx.ALL)
         panelvbox.Add(self.toolbar, 0, flag=wx.EXPAND|wx.GROW|wx.ALL)
         self.SetSizer(panelvbox)
         panelvbox.Fit(self)
-        self.canvas.draw()
+        self.toolbar.Realize()
+        self.canvas.draw()        
 
 if __name__ == '__main__':
 
