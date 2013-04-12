@@ -5,17 +5,15 @@ except ImportError: # if it's not there locally, try the wxPython lib.
     import wx.lib.agw.aui as aui
     NONLOCAL_AGW = True
 import matplotlib
-MPL_VERSION = matplotlib.__version__
 matplotlib.use('WXAgg')
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigCanvas, \
     NavigationToolbar2WxAgg as NavigationToolbar
 import matplotlib.dates as mdates
-from matplotlib.widgets import SpanSelector
 import datetime as dt
-from collections import defaultdict
-import numpy as np
+
+MPL_VERSION = matplotlib.__version__
 
 class MPLPanel(wx.Panel):
     def __init__(self, *args, **kwargs):
@@ -27,8 +25,10 @@ class MPLPanel(wx.Panel):
         self.ax1 = None
         self.ax2 = None
         self.canvas = FigCanvas(self, -1, self.fig)
-        self.data = []
+        self.do_layout()
+        self.load_config()
 
+    def do_layout(self):
         # Setup the toolbar/statustextctrl
         self.toolbar = NavigationToolbar(self.canvas)
         if wx.Platform == '__WXMAC__':
@@ -49,7 +49,13 @@ class MPLPanel(wx.Panel):
         self.SetSizer(panelvbox)
         panelvbox.Fit(self)
         self.toolbar.Realize()
-        self.canvas.draw()        
+        self.canvas.draw()
+
+    def load_config(self, plottype=None):
+        """
+        Loads from JSON the config file
+        """
+        pass
 
 if __name__ == '__main__':
 

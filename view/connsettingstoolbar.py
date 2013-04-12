@@ -10,7 +10,6 @@ except ImportError: # if it's not there locally, try the wxPython lib.
 from wx.lib.pubsub import Publisher as pub
 import threading
 import random
-import spectrum_gen
 
 class Toolbar(aui.AuiToolBar):
 

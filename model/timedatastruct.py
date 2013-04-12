@@ -7,7 +7,7 @@ import numpy as np
 import datetime as dt
 import time
 import bisect
-import spectrum_gen as sgen
+from ..tools import spectrum_gen as sgen
 
 class TimeData(object):
     """General class for dealing with time data in a thread-safe way"""

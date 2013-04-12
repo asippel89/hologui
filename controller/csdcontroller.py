@@ -3,11 +3,11 @@
 
 import wx
 from wx.lib.pubsub import Publisher as pub
-import csdframe
-import timedatastruct as tds
+from ..view import csdframe
+from ..model import timedatastruct as tds
 import time
 import threading
-import clienttest
+from ..tools import clienttest
 
 # Define notification event for thread completion
 EVT_RESULT_ID = wx.NewId()

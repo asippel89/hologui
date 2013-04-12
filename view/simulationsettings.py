@@ -8,7 +8,6 @@ try:
 except ImportError: # if it's not there locally, try the wxPython lib.
     import wx.lib.agw.aui as aui
 from wx.lib.pubsub import Publisher as pub
-import formgenerator as fgen
 
 class SimulateSettingsFrame(wx.Frame):
     
