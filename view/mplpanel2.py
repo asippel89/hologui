@@ -15,6 +15,7 @@ import datetime as dt
 
 MPL_VERSION = matplotlib.__version__
 
+
 class MPLPanel(wx.Panel):
     def __init__(self, *args, **kwargs):
         super(MPLPanel, self).__init__(*args, **kwargs)

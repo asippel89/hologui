@@ -24,14 +24,14 @@ User Interface
 ~~~~~~~~~~~~~~
 
 
-.. figure:: /images/Diaggui_Screenshot.png
+.. figure:: /docs/Diaggui_Screenshot.png
    :alt: Old Diaggui Screenshot
    :scale: 50%
    :align: center
 
    Fig 1: Diaggui Screenshot - Some of the functions of Diaggui will be improved upon and the user interface enhanced for the HoloGUI Data Visualizer
    
-.. figure:: /images/Futuristic_UI.png
+.. figure:: /docs/Futuristic_UI.png
    :alt: Futuristic Looking User Interface
    :scale: 75%
    :align: center
@@ -51,7 +51,7 @@ CSD Viewer
 
 For viewing live Cross Spectra from the interferometers. Data is received over a TCP connection from the CSD streaming software.
 
-.. figure:: /images/CSDView_Screenshot.png
+.. figure:: /docs/CSDView_Screenshot.png
    :alt: Example Screenshot of CSDView GUI 2/22/2013
    :scale: 50%
    :align: Center
