@@ -1,0 +1,10 @@
+#!/usr/bin/python
+
+#hologui_app.py
+
+import wx
+import hologui.controller.csdcontroller as cont
+
+app = wx.App(False)
+MyController = cont.MainController()
+app.MainLoop()
