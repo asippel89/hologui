@@ -23,8 +23,6 @@ class MPLPanel(wx.Panel):
         # Setup the canvas
         self.dpi = 100
         self.fig = Figure((3.0, 2.0))
-        self.ax1 = None
-        self.ax2 = None
         self.canvas = FigCanvas(self, -1, self.fig)
         self.do_layout()
         self.load_config()
@@ -57,6 +55,8 @@ class MPLPanel(wx.Panel):
         Loads from JSON the config file
         """
         pass
+
+    
 
 if __name__ == '__main__':
 

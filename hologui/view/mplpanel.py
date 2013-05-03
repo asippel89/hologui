@@ -100,10 +100,6 @@ class CSDPlotPresenter(object):
             self.canvas.testButton.SetLabel('Resume')
         else:
             self.canvas.testButton.SetLabel('Pause')
-        self.toggle_update_state()
-        return
-
-    def toggle_update_state(self):
         self.update_state = not self.update_state
         return
 

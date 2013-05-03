@@ -243,7 +243,7 @@ class ControlPanel(wx.Panel):
             if msg.data in 'update button':
                 self.runButton.Enable()
         if msg.topic[-1] == 'nb_panel_changed':
-            print "nb_panel_change event"
+            # print "nb_panel_change event"
             if len(self.panel_dict) is not 0:
                 if type(self.panel_dict[msg.data[0]]) is int:
                     self.activetabCtrl.SetLabel(msg.data[1])
@@ -252,13 +252,13 @@ class ControlPanel(wx.Panel):
             else:
                 self.activetabCtrl.SetLabel(msg.data[1])
             self.current_active_tab = msg.data[0]
-            print "Current Active Tab ID:", self.current_active_tab
+            # print "Current Active Tab ID:", self.current_active_tab
         if msg.topic[-1] == 'nb_panel_changing':
-            print "nb_panel_changing event"
+            # print "nb_panel_changing event"
             self.store_fields(self.current_active_tab)
 
     def retrieve_panel_label(self, tab_data):
-        print tab_data
+        # print tab_data
         for (form_element, value) in self.panel_dict[tab_data[0]].items():
             form_element.SetLabel(tab_data[1])
 
@@ -266,8 +266,8 @@ class ControlPanel(wx.Panel):
         for (form_element, value) in self.panel_dict[tab_index].items():
             # form_element.SetLabel(value)
             if isinstance(form_element, wx._controls.ComboBox):
-                print "type Form_element", str(type(form_element))
-                print "value", value
+                # print "type Form_element", str(type(form_element))
+                # print "value", value
                 form_element.SetValue(value)
             # if type(form_element) is wx._controls.CheckBox:
             #     form_element.SetValue(value)
@@ -394,10 +394,10 @@ class P2Frame(wx.Frame):
         super(P2Frame, self).__init__(*args, **kwargs)
         self._mgr = aui.AuiManager(self)
         mplpanel1 = MPLPanel(self, MPLPanel_ID)
-        mplpanel2 = MPLPanel(self, MPLPanel_ID+1)
+        # mplpanel2 = MPLPanel(self, MPLPanel_ID+1)
         self.auinb = aui.AuiNotebook(self)
         self.auinb.AddPage(mplpanel1, "Plot Canvas 1", select=True)
-        self.auinb.AddPage(mplpanel2, "Plot Canvas 2")
+        # self.auinb.AddPage(mplpanel2, "Plot Canvas 2")
         loggerctrl = LoggerCtrl(self, size=wx.Size(800, 100), \
                                     style=wx.TE_MULTILINE|wx.TE_READONLY)
         controlpanel = ControlPanel(self, size=wx.Size(250, 400))
