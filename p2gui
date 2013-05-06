@@ -285,7 +285,7 @@ class MPLPanel(wx.Panel):
 
         # Setup the canvas
         self.dpi = 100
-        self.fig = Figure((4.0, 5.0), dpi=self.dpi)
+        self.fig = Figure((3.0, 2.0), dpi=self.dpi)
         self.ax = None
         self.canvas = FigCanvas(self, -1, self.fig)
         self.ax_dict = None
