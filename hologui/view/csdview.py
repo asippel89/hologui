@@ -11,7 +11,7 @@ import conn_settings_view as consett
 import mplpanel
 import connsettingstoolbar as connTB
 import csdplotsettingspanel as csdplotsp
-import avgplotsettingspanel as avgplotsp
+import rmsplotsettingspanel as avgplotsp
 from wx.lib.pubsub import Publisher as pub
 
 MSG_NOTIFY_ROOT = ('root',)

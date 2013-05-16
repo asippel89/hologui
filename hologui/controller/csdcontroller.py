@@ -66,10 +66,15 @@ class MainController(object):
                 self.handle_new_data(msg.data)
 
     def handle_new_data(self, data):
+        """
+        When new data arrives, it should be added to the model. Once in the model, we extract
+        the data and send it via the pubsub mechanism
+        """
         self.model.add_data_object(data)
-        new_data = self.model.get_current_data()
         timestamp = self.model.get_current_time()
         run_info = self.model.get_current_run_info()
+        # Should change how phase information is sent, could let the plotter handle this 
+        # operation
         data_dict = self.model.get_current_data()
         phase_dict = self.model.get_current_phase_data()
         #running_avg = self.model.get_current_running_avg()
