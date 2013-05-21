@@ -14,7 +14,7 @@ from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigCanvas, \
     NavigationToolbar2WxAgg as NavigationToolbar
 from wx.lib.pubsub import Publisher
-import hologui.tools.p2acnet as p2acnet
+import core.tools.p2acnet as p2acnet
 import threading
 import numpy as np
 import matplotlib.pyplot as plt
