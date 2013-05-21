@@ -12,7 +12,7 @@ from matplotlib.backends.backend_wxagg import \
     NavigationToolbar2WxAgg as NavigationToolbar
 import matplotlib.dates as mdates
 import datetime as dt
-
+import json
 
 MPL_VERSION = matplotlib.__version__
 
@@ -26,16 +26,29 @@ class MPLPanel(wx.Panel):
         if len(self.gridoptions) > 0:
             print self.gridoptions
         # Setup the canvas
-        self.dpi = 100
-        self.fig = Figure((12, 10))
+        self.dpi = 80
+        self.figsize = (13.85,10) 
+        self.fig = Figure(figsize=self.figsize, dpi=self.dpi)
         self.gridsize = gridsize
-        self.gs = matplotlib.gridspec.GridSpec(gridsize[0],gridsize[1])
-        self.gs.update(left=.05,right=.95,hspace=.5)
-        self.ax1 = None
-        self.ax2 = None
+        self.gsleft = 0.05
+        self.gsright = .95
+        self.gshspace = .5
+        self.change_grid_size(self.gridsize, 
+                              left=self.gsleft, 
+                              right=self.gsright, 
+                              hspace=self.gshspace
+                              )
         self.canvas = FigCanvas(self, -1, self.fig)
+        # Initialize Subplot Info list
+        self.sp_info = []
         self.do_layout()
-
+        
+    def change_grid_size(self, gridsize, update=False, **kwargs):
+        self.gs = matplotlib.gridspec.GridSpec(gridsize[0],gridsize[1])
+        self.gs.update(**kwargs)
+        if update:
+            self.canvas.draw()
+        
     def do_layout(self):
         # Setup the toolbar/statustextctrl
         self.toolbar = NavigationToolbar(self.canvas)
@@ -51,12 +64,18 @@ class MPLPanel(wx.Panel):
             self.testButton = wx.Button(self.toolbar, label='del_sp(6)')
             self.testButton2 = wx.Button(self.toolbar, label='add_sp(0,1,colspan=3)')
             self.testButton3 = wx.Button(self.toolbar, label='view_axis_info')            
+            self.testButton4 = wx.Button(self.toolbar, label='save_config')            
+            self.testButton5 = wx.Button(self.toolbar, label='load_config')            
             self.toolbar.AddControl(self.testButton)
             self.toolbar.AddControl(self.testButton2)
             self.toolbar.AddControl(self.testButton3)
+            self.toolbar.AddControl(self.testButton4)
+            self.toolbar.AddControl(self.testButton5)
             self.testButton.Bind(wx.EVT_BUTTON, self.onTestButton)
             self.testButton2.Bind(wx.EVT_BUTTON, self.onTestButton2)
             self.testButton3.Bind(wx.EVT_BUTTON, self.onTestButton3)
+            self.testButton4.Bind(wx.EVT_BUTTON, self.onTestButton4)
+            self.testButton5.Bind(wx.EVT_BUTTON, self.onTestButton5)
         self.toolbar.AddSeparator()
         self.statusctrl = wx.StaticText(self.toolbar, style=wx.TE_READONLY, size=wx.Size(300,25))
         self.toolbar.AddControl(self.statusctrl)
@@ -95,6 +114,12 @@ class MPLPanel(wx.Panel):
                     ax.texts = []
             self.canvas.draw()
             
+    def onTestButton4(self,event):
+        self.save_config('TestConfig.json')
+
+    def onTestButton5(self,event):
+        self.load_config('TestConfig.json')
+            
     def view_axis_info(self):
         for i,ax in enumerate(self.fig.axes):
             if ax.texts > 0:
@@ -116,18 +141,14 @@ class MPLPanel(wx.Panel):
             ax = self.fig.add_subplot(self.gs[x:x+rowspan,y])
         else:    
             ax = self.fig.add_subplot(self.gs[x,y])
-        # Add instructive text if testax True
-        # if testax:
-        #     num = len(self.fig.axes) - 1
-        #     location = ax.get_geometry()
-        #     ax.text(.5, .5, 'Axes Index: ' + str(num), 
-        #              horizontalalignment='center',
-        #              verticalalignment='center',
-        #              transform = ax.transAxes)
-        #     ax.text(.5, .4, 'Geometry: '+str(location),
-        #              horizontalalignment='center',
-        #              verticalalignment='center',
-        #              transform = ax.transAxes)
+        # Add location info to sp_info
+        loc_info = {}
+        loc_info['x_pos'] = x
+        loc_info['y_pos'] = y
+        loc_info['colspan'] = colspan
+        loc_info['rowspan'] = rowspan
+        self.sp_info.append(loc_info)
+        # View Ax Info
         if self.view_ax_info_state:
             self.view_axis_info()
         self.canvas.draw()
@@ -135,6 +156,9 @@ class MPLPanel(wx.Panel):
 
     def del_sp(self, axindex):
         self.fig.delaxes(self.fig.axes[axindex])
+        # remove from sp_info
+        self.sp_info.pop(axindex)
+        # update view info if active
         if self.view_ax_info_state:
             self.view_axis_info()
         self.canvas.draw()
@@ -143,11 +167,56 @@ class MPLPanel(wx.Panel):
         self.fig.text(x, y, s, kwargs)
         self.canvas.draw()
 
-    def load_config(self, plottype=None):
+    def save_config(self, filename):
+        cf = {}
+        # Add figure info
+        cf['dpi'] = self.dpi
+        cf['figsize'] = self.figsize
+        cf['gridsize'] = self.gridsize
+        cf['gridspec_options'] = {'left':self.gsleft,
+                                  'right':self.gsright, 
+                                  'hspace':self.gshspace
+                                  }
+        # Add subplot info
+        cf['subplots'] = self.sp_info
+        f = open(filename, 'w')
+        json.dump(cf, f, sort_keys=True, indent=4, separators=(',',': '))
+        f.close()
+        print 'Num Subplots:', len(cf['subplots'])
+        return cf
+        
+    def load_config(self, filename):
         """
         Loads from JSON the config file
         """
-        pass
+        f = open(filename, 'r')
+        cf = json.load(f)
+        f.close()
+        print 'len sp_info at load', len(self.sp_info)
+        self.sp_info = []
+        # Update/Load Figure Configuration
+        self.fig.clear()
+        for ax in self.fig.axes:
+            self.fig.delaxes(ax)
+        self.dpi = cf['dpi']
+        print 'DPI at load:', self.dpi
+        self.fig.set_dpi(self.dpi)
+        self.figsize = tuple(cf['figsize'])
+        print 'Reported figsize at load:', self.figsize
+        # self.fig.set_size_inches(self.figsize)
+        print 'Actual figsize after load:', self.fig.get_size_inches()
+        self.gridsize = tuple(cf['gridsize'])
+        gs_opts = cf['gridspec_options']
+        self.change_grid_size(self.gridsize,
+                              left=gs_opts['left'],
+                              right=gs_opts['right'],
+                              hspace=gs_opts['hspace']
+                              )
+        # Update/Load Subplots
+        for ax_info in cf['subplots']:
+            self.add_sp(ax_info['x_pos'],ax_info['y_pos'],ax_info['colspan'],ax_info['rowspan'])
+        self.canvas.draw()
+
 
 if __name__ == '__main__':
 
