@@ -18,14 +18,12 @@ class MyFrame(wx.Frame):
         for i in range(12):
             for j in range(4):
                 if i==3*j:
-                    self.panel.add_sp(3*j,j,rowspan=3)
+                    ax = self.panel.add_sp(3*j,j,rowspan=3)
+                    ax.plot([1,2,3,4,5])
                 if i>3*j:
                     if i%3==0:
                         self.panel.add_sp(i,j,rowspan=2)
                         self.panel.add_sp(i+2,j)
-        self.panel.fig.axes[4].get_xaxis().set_visible(False)
-        print 'DPI:', self.panel.fig.get_dpi()
-        print 'Size Inches:', self.panel.fig.get_size_inches()
 
 app = wx.App(False)
 frame = MyFrame(None, title="Plot Canvas & Settings Test", \

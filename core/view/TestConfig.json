@@ -4,6 +4,21 @@
         13.85,
         10
     ],
+    "figtext": [
+        {
+            "options": {
+                "bbox": {
+                    "alpha": 0.5,
+                    "facecolor": "blue"
+                },
+                "fontsize": 15,
+                "fontweight": "bold"
+            },
+            "text": "Grid Size (12,4)",
+            "x_pos": 0.8,
+            "y_pos": 0.9
+        }
+    ],
     "gridsize": [
         12,
         4
@@ -15,100 +30,208 @@
     },
     "subplots": [
         {
-            "colspan": null,
+            "colspan": 1,
             "rowspan": 3,
+            "title": "",
             "x_pos": 0,
-            "y_pos": 0
+            "xlabel": "",
+            "xlim": [
+                0.0,
+                4.0
+            ],
+            "y_pos": 0,
+            "ylabel": "",
+            "ylim": [
+                1.0,
+                5.0
+            ]
         },
         {
-            "colspan": null,
+            "colspan": 1,
             "rowspan": 2,
+            "title": "",
             "x_pos": 3,
-            "y_pos": 0
+            "xlabel": "",
+            "xlim": [
+                0.0,
+                1.0
+            ],
+            "y_pos": 0,
+            "ylabel": "",
+            "ylim": [
+                0.0,
+                1.0
+            ]
         },
         {
-            "colspan": null,
-            "rowspan": null,
+            "colspan": 1,
+            "rowspan": 1,
+            "title": "",
             "x_pos": 5,
-            "y_pos": 0
+            "xlabel": "",
+            "xlim": [
+                0.0,
+                1.0
+            ],
+            "y_pos": 0,
+            "ylabel": "",
+            "ylim": [
+                0.0,
+                1.0
+            ]
         },
         {
-            "colspan": null,
+            "colspan": 1,
             "rowspan": 3,
+            "title": "",
             "x_pos": 3,
-            "y_pos": 1
+            "xlabel": "",
+            "xlim": [
+                0.0,
+                4.0
+            ],
+            "y_pos": 1,
+            "ylabel": "",
+            "ylim": [
+                1.0,
+                5.0
+            ]
         },
         {
-            "colspan": null,
+            "colspan": 1,
             "rowspan": 2,
+            "title": "",
             "x_pos": 6,
-            "y_pos": 0
+            "xlabel": "",
+            "xlim": [
+                0.0,
+                1.0
+            ],
+            "y_pos": 0,
+            "ylabel": "",
+            "ylim": [
+                0.0,
+                1.0
+            ]
         },
         {
-            "colspan": null,
-            "rowspan": null,
+            "colspan": 1,
+            "rowspan": 1,
+            "title": "",
             "x_pos": 8,
-            "y_pos": 0
+            "xlabel": "",
+            "xlim": [
+                0.0,
+                1.0
+            ],
+            "y_pos": 0,
+            "ylabel": "",
+            "ylim": [
+                0.0,
+                1.0
+            ]
         },
         {
-            "colspan": null,
+            "colspan": 1,
+            "rowspan": 1,
+            "title": "",
+            "x_pos": 11,
+            "xlabel": "",
+            "xlim": [
+                0.0,
+                1.0
+            ],
+            "y_pos": 0,
+            "ylabel": "",
+            "ylim": [
+                0.0,
+                1.0
+            ]
+        },
+        {
+            "colspan": 1,
             "rowspan": 2,
-            "x_pos": 6,
-            "y_pos": 1
+            "title": "",
+            "x_pos": 9,
+            "xlabel": "",
+            "xlim": [
+                0.0,
+                1.0
+            ],
+            "y_pos": 1,
+            "ylabel": "",
+            "ylim": [
+                0.0,
+                1.0
+            ]
         },
         {
-            "colspan": null,
-            "rowspan": null,
-            "x_pos": 8,
-            "y_pos": 1
+            "colspan": 1,
+            "rowspan": 1,
+            "title": "",
+            "x_pos": 11,
+            "xlabel": "",
+            "xlim": [
+                0.0,
+                1.0
+            ],
+            "y_pos": 1,
+            "ylabel": "",
+            "ylim": [
+                0.0,
+                1.0
+            ]
         },
         {
-            "colspan": null,
+            "colspan": 1,
+            "rowspan": 2,
+            "title": "",
+            "x_pos": 9,
+            "xlabel": "",
+            "xlim": [
+                0.0,
+                1.0
+            ],
+            "y_pos": 2,
+            "ylabel": "",
+            "ylim": [
+                0.0,
+                1.0
+            ]
+        },
+        {
+            "colspan": 1,
+            "rowspan": 1,
+            "title": "",
+            "x_pos": 11,
+            "xlabel": "",
+            "xlim": [
+                0.0,
+                1.0
+            ],
+            "y_pos": 2,
+            "ylabel": "",
+            "ylim": [
+                0.0,
+                1.0
+            ]
+        },
+        {
+            "colspan": 1,
             "rowspan": 3,
-            "x_pos": 6,
-            "y_pos": 2
-        },
-        {
-            "colspan": null,
-            "rowspan": 2,
+            "title": "",
             "x_pos": 9,
-            "y_pos": 0
-        },
-        {
-            "colspan": null,
-            "rowspan": null,
-            "x_pos": 11,
-            "y_pos": 0
-        },
-        {
-            "colspan": null,
-            "rowspan": 2,
-            "x_pos": 9,
-            "y_pos": 1
-        },
-        {
-            "colspan": null,
-            "rowspan": null,
-            "x_pos": 11,
-            "y_pos": 1
-        },
-        {
-            "colspan": null,
-            "rowspan": 2,
-            "x_pos": 9,
-            "y_pos": 2
-        },
-        {
-            "colspan": null,
-            "rowspan": null,
-            "x_pos": 11,
-            "y_pos": 2
-        },
-        {
-            "colspan": null,
-            "rowspan": 3,
-            "x_pos": 9,
-            "y_pos": 3
+            "xlabel": "",
+            "xlim": [
+                0.0,
+                4.0
+            ],
+            "y_pos": 3,
+            "ylabel": "",
+            "ylim": [
+                1.0,
+                5.0
+            ]
         }
     ]
 }

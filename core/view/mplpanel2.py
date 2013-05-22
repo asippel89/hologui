@@ -10,8 +10,6 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import \
     FigureCanvasWxAgg as FigCanvas, \
     NavigationToolbar2WxAgg as NavigationToolbar
-import matplotlib.dates as mdates
-import datetime as dt
 import json
 
 MPL_VERSION = matplotlib.__version__
@@ -39,8 +37,11 @@ class MPLPanel(wx.Panel):
                               hspace=self.gshspace
                               )
         self.canvas = FigCanvas(self, -1, self.fig)
-        # Initialize Subplot Info list
-        self.sp_info = []
+        # Instance variables for storing info
+        self.figtext_info = []
+        # Plot Update
+        self.plot_update = True
+
         self.do_layout()
         
     def change_grid_size(self, gridsize, update=False, **kwargs):
@@ -59,8 +60,11 @@ class MPLPanel(wx.Panel):
             fw, fh = self.canvas.GetSizeTuple()
             self.toolbar.SetSize(wx.Size(fw, th))
         self.toolbar.dynamic_update()
-        self.toolbar.AddSeparator()
+        self.updateButton = wx.Button(self.toolbar, label='Pause')
+        self.updateButton.Bind(wx.EVT_BUTTON, self.on_update_button)
+        self.toolbar.AddControl(self.updateButton)
         if self.test:
+            self.toolbar.AddSeparator()
             self.testButton = wx.Button(self.toolbar, label='del_sp(6)')
             self.testButton2 = wx.Button(self.toolbar, label='add_sp(0,1,colspan=3)')
             self.testButton3 = wx.Button(self.toolbar, label='view_axis_info')            
@@ -92,11 +96,21 @@ class MPLPanel(wx.Panel):
         """Function to update statusbar with mouse position"""
         if event.inaxes:
             x, y = event.xdata, event.ydata
-            self.statusctrl.SetLabel("x= " + str(x) + 
-                                            "  y=" + str(y)
-                                            )
+            self.statusctrl.SetLabel("x= " + str(x) + "  y=" + str(y))
         else:
             pass
+
+    def on_update_button(self,event):
+        if self.plot_update:
+            self.updateButton.SetLabel('Resume')
+        else:
+            self.updateButton.SetLabel('Pause')
+        self.toggle_plot_update_state()
+        return
+
+    def toggle_plot_update_state(self):
+        self.plot_update = not self.plot_update
+        return
 
     def onTestButton(self, event):
         self.del_sp(6)
@@ -132,22 +146,21 @@ class MPLPanel(wx.Panel):
                      transform = ax.transAxes)
         self.canvas.draw()
 
-    def add_sp(self, x, y, colspan=None, rowspan=None, testax=False):
-        if colspan and rowspan:
-            ax = self.fig.add_subplot(self.gs[x:x+rowspan,y:y+colspan])
-        elif colspan:
-            ax = self.fig.add_subplot(self.gs[x,y:y+colspan])
-        elif rowspan:
-            ax = self.fig.add_subplot(self.gs[x:x+rowspan,y])
-        else:    
-            ax = self.fig.add_subplot(self.gs[x,y])
-        # Add location info to sp_info
+    def add_sp(self, x, y, colspan=None, rowspan=None):
+        '''
+        Method called whenever a subplot is added to the figure, initiates a Subplot instance
+        '''
+        if not colspan:
+            colspan = 1
+        if not rowspan:
+            rowspan = 1
+        span = self.gs[x:x+rowspan,y:y+colspan]
         loc_info = {}
         loc_info['x_pos'] = x
         loc_info['y_pos'] = y
         loc_info['colspan'] = colspan
         loc_info['rowspan'] = rowspan
-        self.sp_info.append(loc_info)
+        ax = Subplot(self.fig, span, loc_info)
         # View Ax Info
         if self.view_ax_info_state:
             self.view_axis_info()
@@ -156,8 +169,6 @@ class MPLPanel(wx.Panel):
 
     def del_sp(self, axindex):
         self.fig.delaxes(self.fig.axes[axindex])
-        # remove from sp_info
-        self.sp_info.pop(axindex)
         # update view info if active
         if self.view_ax_info_state:
             self.view_axis_info()
@@ -165,6 +176,7 @@ class MPLPanel(wx.Panel):
 
     def add_figtext(self, x, y, s, **kwargs):
         self.fig.text(x, y, s, kwargs)
+        self.figtext_info.append({'x_pos':x,'y_pos':y,'text':s,'options':kwargs})
         self.canvas.draw()
 
     def save_config(self, filename):
@@ -177,12 +189,15 @@ class MPLPanel(wx.Panel):
                                   'right':self.gsright, 
                                   'hspace':self.gshspace
                                   }
+        # Add figure text info
+        cf['figtext'] = self.figtext_info
         # Add subplot info
-        cf['subplots'] = self.sp_info
+        cf['subplots'] = []
+        for ax in self.fig.axes:
+            cf['subplots'].append(ax.get_options_dict())
         f = open(filename, 'w')
         json.dump(cf, f, sort_keys=True, indent=4, separators=(',',': '))
         f.close()
-        print 'Num Subplots:', len(cf['subplots'])
         return cf
         
     def load_config(self, filename):
@@ -192,19 +207,14 @@ class MPLPanel(wx.Panel):
         f = open(filename, 'r')
         cf = json.load(f)
         f.close()
-        print 'len sp_info at load', len(self.sp_info)
         self.sp_info = []
         # Update/Load Figure Configuration
         self.fig.clear()
         for ax in self.fig.axes:
             self.fig.delaxes(ax)
         self.dpi = cf['dpi']
-        print 'DPI at load:', self.dpi
         self.fig.set_dpi(self.dpi)
         self.figsize = tuple(cf['figsize'])
-        print 'Reported figsize at load:', self.figsize
-        # self.fig.set_size_inches(self.figsize)
-        print 'Actual figsize after load:', self.fig.get_size_inches()
         self.gridsize = tuple(cf['gridsize'])
         gs_opts = cf['gridspec_options']
         self.change_grid_size(self.gridsize,
@@ -212,11 +222,52 @@ class MPLPanel(wx.Panel):
                               right=gs_opts['right'],
                               hspace=gs_opts['hspace']
                               )
+        # self.fig.set_size_inches(self.figsize) # For some reason this doesn't work
+        # Add all figtext
+        for text in cf['figtext']:
+            # Note that the options unpacking only will work if the 
+            # parameters are json serializable
+            self.add_figtext(text['x_pos'],text['y_pos'],text['text'],**text['options'])
         # Update/Load Subplots
-        for ax_info in cf['subplots']:
-            self.add_sp(ax_info['x_pos'],ax_info['y_pos'],ax_info['colspan'],ax_info['rowspan'])
+        for ax_dict in cf['subplots']:
+            ax = self.add_sp(ax_dict['x_pos'],
+                             ax_dict['y_pos'],
+                             ax_dict['colspan'],
+                             ax_dict['rowspan']
+                             )
+            ax.load_from_options(ax_dict)
         self.canvas.draw()
 
+class Subplot(matplotlib.axes.Subplot):
+    
+    def __init__(self, fig, span, pos_info, *args, **kwargs):
+        self.fig = fig
+        super(Subplot, self).__init__(fig, span)
+        self.fig.add_subplot(self)
+        self.options_dict = pos_info
+        # Add other options and their hooks here
+        self.options_map = {'xlabel':[self.get_xlabel,self.set_xlabel],
+                            'ylabel':[self.get_ylabel,self.set_ylabel],
+                            'xlim':[self.get_xlim, self.set_xlim],
+                            'ylim':[self.get_ylim, self.set_ylim],
+                            'title':[self.get_title, self.set_title]
+                            }
+
+    def get_options_dict(self):
+        '''
+        Use this as a dispatcher for the various axis options.
+        '''
+        # still won't handle latex formatted strings
+        for option in self.options_map:
+            self.options_dict[option] = self.options_map[option][0]()
+        return self.options_dict
+
+    def load_from_options(self, options_dict):
+        for option in options_dict:
+            if option in ['rowspan','colspan', 'x_pos', 'y_pos']:
+                pass
+            else:
+                self.options_map[option][1](options_dict[option])
 
 if __name__ == '__main__':
 
@@ -225,7 +276,7 @@ if __name__ == '__main__':
             super(MyFrame, self).__init__(*args, **kwargs)
             self._mgr = aui.AuiManager(self)
             # Create Objects
-            self.panel = MPLPanel(self)
+            self.panel = MPLPanel(self, (12,4))
             self.textCtrl = wx.TextCtrl(self, size=wx.Size(800, 50), \
                                        style=wx.TE_MULTILINE)
             self._mgr.AddPane(self.textCtrl, aui.AuiPaneInfo().Name('textCtrl').
